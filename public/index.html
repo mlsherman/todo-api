@@ -1,20 +1,68 @@
-<!-- index.html (Frontend) -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My To-Do List</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Node.js To-Do API</title>
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="container">
-    <h1>My To-Do List</h1>
-    <ul id="todo-list"></ul>
-    <input type="text" id="new-todo" placeholder="New task...">
-    <button id="add-btn">Add Task</button>
-  </div>
+  <header>
+    <h1>🚀 Node.js To-Do API</h1>
+    <p>A simple Express-based REST API for managing a to-do list.</p>
+  </header>
 
-  <script src="/script.js"></script>
+  <section class="todo-section">
+    <h2>📋 Current Todos</h2>
+    <ul id="todo-list"></ul>
+  </section>
+
+  <section class="form-section">
+    <h2>➕ Add a New To-Do</h2>
+    <form id="todo-form">
+      <input type="text" id="new-task" placeholder="Enter a new task..." required />
+      <button type="submit">Add</button>
+    </form>
+  </section>
+
+  <footer>
+    <p>Built with Node.js + Express + Render | GitHub: <a href="https://github.com/mlsherman/todo-api" target="_blank">mlsherman/todo-api</a></p>
+  </footer>
+
+  <script>
+    const todoList = document.getElementById('todo-list');
+    const form = document.getElementById('todo-form');
+    const input = document.getElementById('new-task');
+
+    async function fetchTodos() {
+      const res = await fetch('/todos');
+      const todos = await res.json();
+      todoList.innerHTML = '';
+      todos.forEach(todo => {
+        const li = document.createElement('li');
+        li.textContent = `${todo.id}. ${todo.task}`;
+        todoList.appendChild(li);
+      });
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const task = input.value.trim();
+      if (!task) return;
+
+      const res = await fetch('/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task })
+      });
+
+      if (res.ok) {
+        input.value = '';
+        fetchTodos();
+      }
+    });
+
+    fetchTodos();
+  </script>
 </body>
 </html>
