@@ -1,68 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Node.js To-Do API</title>
-  <link rel="stylesheet" href="/style.css" />
-</head>
-<body>
-  <header>
-    <h1>🚀 Node.js To-Do API</h1>
-    <p>A simple Express-based REST API for managing a to-do list.</p>
-  </header>
+  <head>
+    <meta charset="UTF-8" />
+    <title>To-Do API Dashboard</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>Welcome to the To-Do API</h1>
+      <p>
+        This simple Node.js API lets you manage your daily tasks. You can add
+        new to-dos and delete ones you've completed. All stored in memory for
+        now!
+      </p>
 
-  <section class="todo-section">
-    <h2>📋 Current Todos</h2>
-    <ul id="todo-list"></ul>
-  </section>
+      <form id="todo-form">
+        <input
+          type="text"
+          id="new-todo"
+          placeholder="Enter a new task..."
+          required
+        />
+        <button type="submit">Add Task</button>
+      </form>
 
-  <section class="form-section">
-    <h2>➕ Add a New To-Do</h2>
-    <form id="todo-form">
-      <input type="text" id="new-task" placeholder="Enter a new task..." required />
-      <button type="submit">Add</button>
-    </form>
-  </section>
+      <ul id="todo-list">
+        <!-- Todos will appear here -->
+      </ul>
+    </div>
 
-  <footer>
-    <p>Built with Node.js + Express + Render | GitHub: <a href="https://github.com/mlsherman/todo-api" target="_blank">mlsherman/todo-api</a></p>
-  </footer>
+    <script>
+      const form = document.getElementById("todo-form");
+      const input = document.getElementById("new-todo");
+      const list = document.getElementById("todo-list");
 
-  <script>
-    const todoList = document.getElementById('todo-list');
-    const form = document.getElementById('todo-form');
-    const input = document.getElementById('new-task');
-
-    async function fetchTodos() {
-      const res = await fetch('/todos');
-      const todos = await res.json();
-      todoList.innerHTML = '';
-      todos.forEach(todo => {
-        const li = document.createElement('li');
-        li.textContent = `${todo.id}. ${todo.task}`;
-        todoList.appendChild(li);
-      });
-    }
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const task = input.value.trim();
-      if (!task) return;
-
-      const res = await fetch('/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ task })
-      });
-
-      if (res.ok) {
-        input.value = '';
-        fetchTodos();
+      // Fetch and display todos
+      async function loadTodos() {
+        const res = await fetch("/todos");
+        const todos = await res.json();
+        list.innerHTML = "";
+        todos.forEach((todo) => {
+          const li = document.createElement("li");
+          li.textContent = todo.task;
+          li.dataset.id = todo.id;
+          li.addEventListener("click", async () => {
+            await fetch(`/todos/${todo.id}`, { method: "DELETE" });
+            loadTodos();
+          });
+          list.appendChild(li);
+        });
       }
-    });
 
-    fetchTodos();
-  </script>
-</body>
+      // Add new todo
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const task = input.value.trim();
+        if (task) {
+          await fetch("/todos", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task }),
+          });
+          input.value = "";
+          loadTodos();
+        }
+      });
+
+      loadTodos();
+    </script>
+  </body>
 </html>
