@@ -10,8 +10,7 @@
       <h1>Welcome to the To-Do API</h1>
       <p>
         This simple Node.js API lets you manage your daily tasks. You can add
-        new to-dos and delete ones you've completed. All stored in memory for
-        now!
+        new to-dos and delete ones you've completed. All stored in MongoDB!
       </p>
 
       <form id="todo-form">
@@ -42,9 +41,9 @@
         todos.forEach((todo) => {
           const li = document.createElement("li");
           li.textContent = todo.task;
-          li.dataset.id = todo.id;
+          li.dataset.id = todo._id;
           li.addEventListener("click", async () => {
-            await fetch(`/todos/${todo.id}`, { method: "DELETE" });
+            await fetch(`/todos/${todo._id}`, { method: "DELETE" });
             loadTodos();
           });
           list.appendChild(li);

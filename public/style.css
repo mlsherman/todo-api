@@ -1,6 +1,7 @@
 body {
   font-family: 'Segoe UI', sans-serif;
-  background: #f0f2f5;
+  background: linear-gradient(135deg, #001f3f 0%, #1e90ff 100%); /* Purple/Blue dark gradient */
+  color: #e1e1e1; /* Light text color for dark theme */
   margin: 0;
   padding: 0;
   display: flex;
@@ -10,10 +11,10 @@ body {
 }
 
 .container {
-  background: white;
+  background: #333; /* Darker container background */
   padding: 2rem;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); /* Darker shadow */
   width: 100%;
   max-width: 500px;
   text-align: center;
@@ -21,12 +22,12 @@ body {
 
 h1 {
   margin-bottom: 0.5rem;
-  color: #333;
+  color: #f1f1f1; /* Lighter color for headers */
 }
 
 p {
   margin-bottom: 1.5rem;
-  color: #666;
+  color: #bbb; /* Light gray text */
 }
 
 form {
@@ -39,7 +40,14 @@ input {
   flex: 1;
   padding: 0.5rem;
   border-radius: 6px;
-  border: 1px solid #ccc;
+  border: 1px solid #555; /* Darker border */
+  background-color: #444; /* Darker input background */
+  color: #f1f1f1; /* Light text color */
+}
+
+input:focus {
+  outline: none;
+  border-color: #007bff; /* Highlight on focus */
 }
 
 button {
@@ -63,7 +71,7 @@ ul {
 
 li {
   padding: 0.5rem;
-  background: #f8f9fa;
+  background: #444; /* Darker list item background */
   margin-bottom: 0.5rem;
   border-radius: 6px;
   cursor: pointer;
@@ -71,7 +79,5 @@ li {
 }
 
 li:hover {
-  background: #e2e6ea;
+  background: #555; /* Slightly lighter on hover */
 }
-
-  
