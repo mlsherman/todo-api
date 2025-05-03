@@ -1,55 +1,73 @@
 const express = require("express");
 const path = require("path");
+const mongoose = require("mongoose");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json()); // Parse JSON body
+// ✅ MongoDB connection string (fixed)
+const dbURI =
+  "mongodb+srv://mshermandev01:J0Avk6LkMG9siRTL@cluster0.yu6ogsh.mongodb.net/todos-db?retryWrites=true&w=majority&appName=Cluster0";
 
-// Serve static files from the 'public' folder
-app.use(express.static(path.join(__dirname, "public")));
+mongoose
+  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch((err) => console.error("❌ MongoDB connection error:", err));
 
-// In-memory todo store
-let todos = [
-  { id: 1, task: "Learn Node.js" },
-  { id: 2, task: "Build a REST API" },
-];
+// ✅ Mongoose schema and model
+const todoSchema = new mongoose.Schema({
+  task: { type: String, required: true },
+});
 
-// Home route
+const Todo = mongoose.model("Todo", todoSchema);
+
+// ✅ Middleware
+app.use(express.json()); // Parse JSON
+app.use(express.static(path.join(__dirname, "public"))); // Serve static files
+
+// ✅ Routes
+
+// Home
 app.get("/", (req, res) => {
   res.send("Hello from your Node.js To-Do API!");
 });
 
-// GET all todos
-app.get("/todos", (req, res) => {
-  res.json(todos);
+// Get all todos
+app.get("/todos", async (req, res) => {
+  try {
+    const todos = await Todo.find();
+    res.json(todos);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch todos" });
+  }
 });
 
-// POST a new todo
-app.post("/todos", (req, res) => {
+// Create new todo
+app.post("/todos", async (req, res) => {
   const { task } = req.body;
-  if (!task) {
-    return res.status(400).json({ error: "Task is required" });
+  if (!task) return res.status(400).json({ error: "Task is required" });
+
+  try {
+    const newTodo = new Todo({ task });
+    await newTodo.save();
+    res.status(201).json(newTodo);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to create todo" });
   }
-  const newTodo = {
-    id: todos.length + 1,
-    task,
-  };
-  todos.push(newTodo);
-  res.status(201).json(newTodo);
 });
 
-// DELETE a todo by ID
-app.delete("/todos/:id", (req, res) => {
-  const id = parseInt(req.params.id);
-  const index = todos.findIndex((todo) => todo.id === id);
-  if (index === -1) {
-    return res.status(404).json({ error: "Todo not found" });
+// Delete todo by ID
+app.delete("/todos/:id", async (req, res) => {
+  try {
+    const deleted = await Todo.findByIdAndDelete(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Todo not found" });
+    res.json(deleted);
+  } catch (err) {
+    res.status(400).json({ error: "Invalid ID" });
   }
-  const deleted = todos.splice(index, 1);
-  res.json(deleted[0]);
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });
