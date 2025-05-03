@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // ✅ MongoDB connection string (fixed)
 const dbURI =
-  "mongodb+srv://mshermandev01:J0Avk6LkMG9siRTL@cluster0.yu6ogsh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+  "mongodb+srv://mshermandev01:J0Avk6LkMG9siRTL@cluster0.yu6ogsh.mongodb.net/todoDB?retryWrites=true&w=majority&appName=Cluster0";
 
 mongoose
   .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
