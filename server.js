@@ -1,7 +1,7 @@
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
-
+const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -31,7 +31,7 @@ const Todo = mongoose.model("Todo", todoSchema);
 // ✅ Middleware
 app.use(express.json()); // Parse JSON
 app.use(express.static(path.join(__dirname, "public"))); // Serve static files
-
+app.use(cors());
 // ✅ Routes
 
 // Home
