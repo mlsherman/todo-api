@@ -14,6 +14,13 @@ mongoose
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
+mongoose.connection.once("open", () => {
+  console.log("✅ MongoDB connection is open!");
+});
+mongoose.connection.on("error", (err) => {
+  console.error("❌ MongoDB error:", err);
+});
+
 // ✅ Mongoose schema and model
 const todoSchema = new mongoose.Schema({
   task: { type: String, required: true },
