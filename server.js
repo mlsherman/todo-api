@@ -61,30 +61,70 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 
-// ✅ Routes
+// Auth routes
 app.use("/auth", auth.routes);
 
+// ✅ AUTHENTICATION REDIRECT MIDDLEWARE
+// Add this middleware before your route handlers but after the basic middleware
+app.use((req, res, next) => {
+  // Skip auth check for auth routes and static files
+  if (
+    req.path.startsWith("/auth/") ||
+    req.path.endsWith(".html") ||
+    req.path.endsWith(".js") ||
+    req.path.endsWith(".css") ||
+    req.path.endsWith(".png") ||
+    req.path.endsWith(".jpg") ||
+    req.path.endsWith(".svg")
+  ) {
+    return next();
+  }
+
+  // For the root path (/) without authentication, redirect to login
+  if (req.path === "/" || req.path === "/index.html") {
+    // Get the token from the Authorization header
+    const authHeader = req.headers.authorization;
+
+    // If no Authorization header, redirect to login
+    if (!authHeader) {
+      console.log("No auth token found, redirecting to login page");
+      return res.redirect("/auth-login.html");
+    }
+
+    // If there is an Authorization header, let it proceed
+    // The actual token validation will happen in protected routes
+  }
+
+  // For all other routes, proceed to the next middleware
+  next();
+});
+
+// Get auth middleware for protected routes
 const authMiddleware = auth.middleware;
+
+// ✅ Routes
+
 // Home
 app.get("/", (req, res) => {
-  res.send("Hello from your Node.js To-Do API!");
+  // This will now only be called if the user has an auth header
+  // Otherwise, they will be redirected to login by the middleware above
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 // Get all todos with pagination (for Appian Record sync)
 app.get("/todos", authMiddleware, async (req, res) => {
   try {
-    const batchNumber = parseInt(req.query.batch || "1");
-    const batchSize = parseInt(req.query.batchSize || "50");
+    const batchNumber = parseInt(req.query.batch || "1"); // Appian sends batch=1, 2, 3...
+    const batchSize = parseInt(req.query.batchSize || "50"); // Default to 50
     const skip = (batchNumber - 1) * batchSize;
 
-    // Only show todos for the current user
-    const todos = await Todo.find({ user: req.userId }) // Filter by user ID
-      .sort({ id: 1 })
+    const todos = await Todo.find({ user: req.userId })
+      .sort({ id: 1 }) // Important: sort by numeric id
       .skip(skip)
       .limit(batchSize);
 
     if (todos.length === 0) {
-      return res.json([]);
+      return res.json([]); // Appian will stop requesting more batches
     }
 
     res.json(todos);
@@ -100,7 +140,6 @@ app.post("/todos", authMiddleware, async (req, res) => {
   if (!task) return res.status(400).json({ error: "Task is required" });
 
   try {
-    // Add user ID to the todo
     const newTodo = new Todo({
       task,
       user: req.userId, // Associate todo with current user
@@ -108,6 +147,7 @@ app.post("/todos", authMiddleware, async (req, res) => {
     await newTodo.save();
     res.status(201).json(newTodo);
   } catch (err) {
+    console.error("Error creating todo:", err);
     res.status(500).json({ error: "Failed to create todo" });
   }
 });
@@ -115,16 +155,16 @@ app.post("/todos", authMiddleware, async (req, res) => {
 // Delete todo by MongoDB _id (not numeric `id`)
 app.delete("/todos/:id", authMiddleware, async (req, res) => {
   try {
-    // Only allow deleting todos that belong to the current user
     const deleted = await Todo.findOneAndDelete({
       _id: req.params.id,
-      user: req.userId, // Check ownership
+      user: req.userId, // Only delete todos owned by this user
     });
 
     if (!deleted)
       return res.status(404).json({ error: "Todo not found or unauthorized" });
     res.json(deleted);
   } catch (err) {
+    console.error("Error deleting todo:", err);
     res.status(400).json({ error: "Invalid ID" });
   }
 });
@@ -132,4 +172,6 @@ app.delete("/todos/:id", authMiddleware, async (req, res) => {
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`📝 API routes available at http://localhost:${PORT}/todos`);
+  console.log(`🔐 Authentication routes: /auth/register and /auth/login`);
 });
