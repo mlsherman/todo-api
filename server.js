@@ -68,7 +68,7 @@ app.get("/", (req, res) => {
 // Get all todos with pagination (for Appian Record sync)
 app.get("/todos", async (req, res) => {
   try {
-    const startIndex = parseInt(req.query.startIndex || "0");
+    const startIndex = parseInt(req.query.startIndex || "1");
     const batchSize = parseInt(req.query.batchSize || "50");
 
     const todos = await Todo.find()
