@@ -108,20 +108,6 @@ app.delete("/todos/:id", async (req, res) => {
   }
 });
 
-// ✅ TEMP ROUTE: Backfill missing `id` fields for existing todos
-app.post("/backfill-ids", async (req, res) => {
-  try {
-    const todos = await Todo.find().sort({ _id: 1 });
-    let counter = 1;
-
-    for (const todo of todos) {
-      if (!todo.id) {
-        todo.id = counter++;
-        await todo.save();
-      }
-    }
-
-  
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
