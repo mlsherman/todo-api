@@ -1,3 +1,5 @@
+require('dotenv').config();
+const auth = require('./auth');
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -32,6 +34,7 @@ const Counter = mongoose.model("Counter", counterSchema);
 const todoSchema = new mongoose.Schema({
   id: { type: Number, unique: true }, // This is for Appian primary key
   task: { type: String, required: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Link to User model
 });
 
 // ✅ Pre-save hook to auto-increment `id`
