@@ -77,6 +77,10 @@ app.get("/todos", async (req, res) => {
       .skip(skip)
       .limit(batchSize);
 
+    if (todos.length === 0) {
+      return res.json([]); // Appian will stop requesting more batches
+    }
+
     res.json(todos);
   } catch (err) {
     console.error("Error fetching todos:", err);
