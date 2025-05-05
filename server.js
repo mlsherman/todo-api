@@ -5,7 +5,7 @@ const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ✅ MongoDB connection string (fixed)
+// ✅ MongoDB connection string
 const dbURI =
   "mongodb+srv://mshermandev01:J0Avk6LkMG9siRTL@cluster0.yu6ogsh.mongodb.net/todoDB?retryWrites=true&w=majority";
 
@@ -21,17 +21,43 @@ mongoose.connection.on("error", (err) => {
   console.error("❌ MongoDB error:", err);
 });
 
-// ✅ Mongoose schema and model
+// ✅ Counter schema for auto-incrementing id
+const counterSchema = new mongoose.Schema({
+  _id: String,
+  seq: { type: Number, default: 0 },
+});
+const Counter = mongoose.model("Counter", counterSchema);
+
+// ✅ Todo schema with short numeric `id`
 const todoSchema = new mongoose.Schema({
+  id: Number, // This is for Appian primary key
   task: { type: String, required: true },
+});
+
+// ✅ Pre-save hook to auto-increment `id`
+todoSchema.pre("save", async function (next) {
+  if (this.isNew) {
+    try {
+      const counter = await Counter.findByIdAndUpdate(
+        { _id: "todoId" },
+        { $inc: { seq: 1 } },
+        { new: true, upsert: true }
+      );
+      this.id = counter.seq;
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
 });
 
 const Todo = mongoose.model("Todo", todoSchema);
 
 // ✅ Middleware
-app.use(express.json()); // Parse JSON
-app.use(express.static(path.join(__dirname, "public"))); // Serve static files
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
+
 // ✅ Routes
 
 // Home
@@ -39,14 +65,14 @@ app.get("/", (req, res) => {
   res.send("Hello from your Node.js To-Do API!");
 });
 
-// Get all todos with pagination support
+// Get all todos with pagination (for Appian Record sync)
 app.get("/todos", async (req, res) => {
   try {
     const startIndex = parseInt(req.query.startIndex || "0");
     const batchSize = parseInt(req.query.batchSize || "50");
 
     const todos = await Todo.find()
-      .sort({ _id: 1 }) // Important: ensure consistent ordering
+      .sort({ id: 1 }) // sort by short numeric id
       .skip(startIndex)
       .limit(batchSize);
 
@@ -63,7 +89,7 @@ app.post("/todos", async (req, res) => {
   if (!task) return res.status(400).json({ error: "Task is required" });
 
   try {
-    const newTodo = new Todo({ task });
+    const newTodo = new Todo({ task }); // `id` auto-set
     await newTodo.save();
     res.status(201).json(newTodo);
   } catch (err) {
@@ -71,7 +97,7 @@ app.post("/todos", async (req, res) => {
   }
 });
 
-// Delete todo by ID
+// Delete todo by MongoDB _id (not numeric `id`)
 app.delete("/todos/:id", async (req, res) => {
   try {
     const deleted = await Todo.findByIdAndDelete(req.params.id);
