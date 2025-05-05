@@ -7,7 +7,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Check if user is logged in
   const token = localStorage.getItem("token");
   if (!token) {
-    window.location.href = "auth-login.html";
+    window.location.href = "/auth-login.html";
     return;
   }
 
