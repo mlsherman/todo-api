@@ -183,8 +183,10 @@ app.delete("/todos/:id", authMiddleware, async (req, res) => {
 
 // Get all todos - Appian specific endpoint
 app.get("/appian/todos", (req, res) => {
-  const apiKey = req.headers["x-api-key"];
-
+  const apiKey =
+    req.headers["appian_api_key"] ||
+    req.headers["APPIAN_API_KEY"] ||
+    req.headers["Appian_Api_Key"];
   // Validate API key
   if (apiKey !== process.env.APPIAN_API_KEY) {
     console.log("Invalid API key for Appian request");
