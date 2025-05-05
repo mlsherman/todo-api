@@ -111,7 +111,7 @@ app.delete("/todos/:id", async (req, res) => {
 // ✅ TEMP ROUTE: Backfill missing `id` fields for existing todos
 app.post("/backfill-ids", async (req, res) => {
   try {
-    const todos = await Todo.find().sort({ _id: 1 });
+    const todos = await Todo.find().sort({ id: 1 });
     let counter = 1;
 
     for (const todo of todos) {
@@ -123,7 +123,7 @@ app.post("/backfill-ids", async (req, res) => {
 
     // Update counter so future todos get the next number
     await Counter.findByIdAndUpdate(
-      { _id: "todoId" },
+      { id: "todoId" },
       { $set: { seq: counter - 1 } },
       { upsert: true }
     );
@@ -134,7 +134,6 @@ app.post("/backfill-ids", async (req, res) => {
     res.status(500).json({ error: "Backfill failed" });
   }
 });
-
 
 // Start server
 app.listen(PORT, () => {
