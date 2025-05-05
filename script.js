@@ -1,56 +1,107 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const todoList = document.getElementById('todo-list');
-    const newTodoInput = document.getElementById('new-todo');
-    const addButton = document.getElementById('add-btn');
-  
-    // Function to render the todos on the page
-    function renderTodos(todos) {
-      todoList.innerHTML = ''; // Clear the current list
-      todos.forEach(todo => {
-        const li = document.createElement('li');
-        li.innerHTML = `
-          ${todo.task}
-          <button onclick="deleteTodo(${todo.id})">Delete</button>
-        `;
-        todoList.appendChild(li);
+// Todo App with Authentication
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("todo-form");
+  const input = document.getElementById("new-todo");
+  const list = document.getElementById("todo-list");
+
+  // Check if user is logged in
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "auth-login.html";
+    return;
+  }
+
+  // Add logout button
+  addLogoutButton();
+
+  // Fetch and display todos with authentication
+  async function loadTodos() {
+    try {
+      // Add authentication headers to the request
+      const res = await fetch("/api/todos", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
+
+      // If unauthorized, redirect to login
+      if (res.status === 401) {
+        localStorage.removeItem("token");
+        window.location.href = "auth-login.html";
+        return;
+      }
+
+      const todos = await res.json();
+      list.innerHTML = "";
+      todos.forEach((todo) => {
+        const li = document.createElement("li");
+        li.textContent = todo.task;
+        li.dataset.id = todo._id;
+        li.addEventListener("click", async () => {
+          await fetch(`/api/todos/${todo._id}`, {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          loadTodos();
+        });
+        list.appendChild(li);
+      });
+    } catch (error) {
+      console.error("Error loading todos:", error);
     }
-  
-    // Function to fetch all todos from the API
-    async function fetchTodos() {
-      const response = await fetch('/todos');
-      const todos = await response.json();
-      renderTodos(todos);
-    }
-  
-    // Function to add a new todo
-    async function addTodo() {
-      const task = newTodoInput.value.trim();
-      if (task) {
-        const response = await fetch('/todos', {
-          method: 'POST',
+  }
+
+  // Add new todo with authentication
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const task = input.value.trim();
+    if (task) {
+      try {
+        await fetch("/api/todos", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ task }),
         });
-        const newTodo = await response.json();
-        fetchTodos(); // Refresh the list after adding a new todo
+        input.value = "";
+        loadTodos();
+      } catch (error) {
+        console.error("Error adding todo:", error);
       }
     }
-  
-    // Function to delete a todo
-    async function deleteTodo(id) {
-      await fetch(`/todos/${id}`, {
-        method: 'DELETE',
-      });
-      fetchTodos(); // Refresh the list after deletion
-    }
-  
-    // Event listeners
-    addButton.addEventListener('click', addTodo);
-  
-    // Fetch todos when the page loads
-    fetchTodos();
   });
-  
+
+  // Add logout button to the UI
+  function addLogoutButton() {
+    const container = document.querySelector(".container");
+
+    // Create a wrapper for the logout button
+    const logoutWrapper = document.createElement("div");
+    logoutWrapper.style.textAlign = "right";
+    logoutWrapper.style.marginBottom = "1rem";
+
+    // Create the logout button
+    const logoutBtn = document.createElement("button");
+    logoutBtn.textContent = "Logout";
+    logoutBtn.style.padding = "0.3rem 0.8rem";
+    logoutBtn.style.fontSize = "0.9rem";
+
+    // Add click event to logout
+    logoutBtn.addEventListener("click", function () {
+      localStorage.removeItem("token");
+      localStorage.removeItem("userId");
+      window.location.href = "auth-login.html";
+    });
+
+    // Add to the DOM
+    logoutWrapper.appendChild(logoutBtn);
+    container.insertBefore(logoutWrapper, container.firstChild);
+  }
+
+  // Initialize app
+  loadTodos();
+});
