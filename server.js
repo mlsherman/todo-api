@@ -106,8 +106,16 @@ const authMiddleware = auth.middleware;
 
 // Home
 app.get("/", (req, res) => {
-  // This will now only be called if the user has an auth header
-  // Otherwise, they will be redirected to login by the middleware above
+  // Check for authentication token
+  const authHeader = req.headers.authorization;
+
+  // If no token, redirect to login page
+  if (!authHeader) {
+    console.log("No auth token found at root, redirecting to login page");
+    return res.redirect("/auth-login.html");
+  }
+
+  // If has token, serve the index page
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
