@@ -187,6 +187,9 @@ app.get("/appian/todos", (req, res) => {
     req.headers["appian_api_key"] ||
     req.headers["APPIAN_API_KEY"] ||
     req.headers["Appian_Api_Key"];
+
+  console.log("Headers received:", Object.keys(req.headers));
+
   // Validate API key
   if (apiKey !== process.env.APPIAN_API_KEY) {
     console.log("Invalid API key for Appian request");
@@ -219,7 +222,7 @@ app.get("/appian/todos", (req, res) => {
 
 // Create new todo - Appian specific endpoint
 app.post("/appian/todos", (req, res) => {
-  const apiKey = req.headers["x-api-key"];
+  const apiKey = req.headers["appian-api-key"];
 
   // Validate API key
   if (apiKey !== process.env.APPIAN_API_KEY) {
@@ -248,7 +251,7 @@ app.post("/appian/todos", (req, res) => {
 
 // Delete todo - Appian specific endpoint
 app.delete("/appian/todos/:id", (req, res) => {
-  const apiKey = req.headers["x-api-key"];
+  const apiKey = req.headers["appian-api-key"];
 
   // Validate API key
   if (apiKey !== process.env.APPIAN_API_KEY) {
