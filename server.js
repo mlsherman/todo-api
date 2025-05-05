@@ -30,11 +30,11 @@ const counterSchema = new mongoose.Schema({
 });
 const Counter = mongoose.model("Counter", counterSchema);
 
-// ✅ Todo schema with short numeric `id`
+// ✅ Todo schema with short numeric `id` - Updated to make user optional
 const todoSchema = new mongoose.Schema({
   id: { type: Number, unique: true }, // This is for Appian primary key
   task: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Link to User model
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false }, // Changed required to false
 });
 
 // ✅ Pre-save hook to auto-increment `id`
@@ -77,6 +77,7 @@ app.use((req, res, next) => {
   // Skip auth check for auth routes and static files
   if (
     req.path.startsWith("/auth/") ||
+    req.path.startsWith("/appian/") || // Added to skip auth for Appian endpoints
     req.path.endsWith(".html") ||
     req.path.endsWith(".js") ||
     req.path.endsWith(".css")
@@ -177,9 +178,101 @@ app.delete("/todos/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ APPIAN-SPECIFIC ENDPOINTS
+// Special endpoints for Appian with API key authentication
+
+// Get all todos - Appian specific endpoint
+app.get("/appian/todos", (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+
+  // Validate API key
+  if (apiKey !== process.env.APPIAN_API_KEY) {
+    console.log("Invalid API key for Appian request");
+    return res.status(401).json({ error: "Invalid API key" });
+  }
+
+  console.log("Valid API key for Appian request, processing");
+
+  // Process the request with pagination similar to original endpoint
+  const batchNumber = parseInt(req.query.batch || "1");
+  const batchSize = parseInt(req.query.batchSize || "50");
+  const skip = (batchNumber - 1) * batchSize;
+
+  // Get todos without user filtering for Appian
+  Todo.find()
+    .sort({ id: 1 })
+    .skip(skip)
+    .limit(batchSize)
+    .then((todos) => {
+      if (todos.length === 0) {
+        return res.json([]); // Appian will stop requesting more batches
+      }
+      res.json(todos);
+    })
+    .catch((err) => {
+      console.error("Error fetching todos for Appian:", err);
+      res.status(500).json({ error: "Failed to fetch todos" });
+    });
+});
+
+// Create new todo - Appian specific endpoint
+app.post("/appian/todos", (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+
+  // Validate API key
+  if (apiKey !== process.env.APPIAN_API_KEY) {
+    console.log("Invalid API key for Appian request");
+    return res.status(401).json({ error: "Invalid API key" });
+  }
+
+  console.log("Valid API key for Appian request, processing");
+
+  const { task } = req.body;
+  if (!task) return res.status(400).json({ error: "Task is required" });
+
+  // Create todo without user association for Appian
+  const newTodo = new Todo({ task });
+
+  newTodo
+    .save()
+    .then((todo) => {
+      res.status(201).json(todo);
+    })
+    .catch((err) => {
+      console.error("Error creating todo for Appian:", err);
+      res.status(500).json({ error: "Failed to create todo" });
+    });
+});
+
+// Delete todo - Appian specific endpoint
+app.delete("/appian/todos/:id", (req, res) => {
+  const apiKey = req.headers["x-api-key"];
+
+  // Validate API key
+  if (apiKey !== process.env.APPIAN_API_KEY) {
+    console.log("Invalid API key for Appian request");
+    return res.status(401).json({ error: "Invalid API key" });
+  }
+
+  console.log("Valid API key for Appian request, processing");
+
+  Todo.findByIdAndDelete(req.params.id)
+    .then((deleted) => {
+      if (!deleted) return res.status(404).json({ error: "Todo not found" });
+      res.json(deleted);
+    })
+    .catch((err) => {
+      console.error("Error deleting todo for Appian:", err);
+      res.status(400).json({ error: "Invalid ID" });
+    });
+});
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📝 API routes available at http://localhost:${PORT}/todos`);
   console.log(`🔐 Authentication routes: /auth/register and /auth/login`);
+  console.log(
+    `📦 Appian endpoints available at http://localhost:${PORT}/appian/todos`
+  );
 });
