@@ -39,12 +39,20 @@ app.get("/", (req, res) => {
   res.send("Hello from your Node.js To-Do API!");
 });
 
-// Get all todos
+// Get all todos with pagination support
 app.get("/todos", async (req, res) => {
   try {
-    const todos = await Todo.find();
+    // Get 'start' and 'limit' from query params, defaulting to 0 and 50
+    const { start = 0, limit = 50 } = req.query;
+
+    // Fetch todos using pagination
+    const todos = await Todo.find()
+      .skip(parseInt(start))
+      .limit(parseInt(limit));
+
     res.json(todos);
   } catch (err) {
+    console.error("Error fetching todos:", err);
     res.status(500).json({ error: "Failed to fetch todos" });
   }
 });
