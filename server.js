@@ -42,13 +42,13 @@ app.get("/", (req, res) => {
 // Get all todos with pagination support
 app.get("/todos", async (req, res) => {
   try {
-    // Get 'start' and 'limit' from query params, defaulting to 0 and 50
-    const { start = 0, limit = 50 } = req.query;
+    const startIndex = parseInt(req.query.startIndex || "0");
+    const batchSize = parseInt(req.query.batchSize || "50");
 
-    // Fetch todos using pagination
     const todos = await Todo.find()
-      .skip(parseInt(start))
-      .limit(parseInt(limit));
+      .sort({ _id: 1 }) // Important: ensure consistent ordering
+      .skip(startIndex)
+      .limit(batchSize);
 
     res.json(todos);
   } catch (err) {
