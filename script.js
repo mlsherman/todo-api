@@ -27,7 +27,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // If unauthorized, redirect to login
       if (res.status === 401) {
         localStorage.removeItem("token");
-        window.location.href = "auth-login.html";
+        window.location.href = "/auth-login.html";
         return;
       }
 
