@@ -58,44 +58,44 @@ const Todo = mongoose.model("Todo", todoSchema);
 
 // ✅ Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
+app.use(express.static(path.join(__dirname, "public")));
 
 // Auth routes
 app.use("/auth", auth.routes);
 
 // ✅ AUTHENTICATION REDIRECT MIDDLEWARE
 // Add this middleware before your route handlers but after the basic middleware
+// In the authentication middleware
 app.use((req, res, next) => {
+  console.log(
+    `Request path: ${req.path}, Auth header: ${
+      req.headers.authorization ? "Present" : "Missing"
+    }`
+  );
+
   // Skip auth check for auth routes and static files
   if (
     req.path.startsWith("/auth/") ||
     req.path.endsWith(".html") ||
     req.path.endsWith(".js") ||
-    req.path.endsWith(".css") ||
-    req.path.endsWith(".png") ||
-    req.path.endsWith(".jpg") ||
-    req.path.endsWith(".svg")
+    req.path.endsWith(".css")
   ) {
+    console.log(`Skipping auth check for: ${req.path}`);
     return next();
   }
 
   // For the root path (/) without authentication, redirect to login
   if (req.path === "/" || req.path === "/index.html") {
-    // Get the token from the Authorization header
     const authHeader = req.headers.authorization;
 
-    // If no Authorization header, redirect to login
     if (!authHeader) {
-      console.log("No auth token found, redirecting to login page");
+      console.log(`Redirecting to login from path: ${req.path}`);
       return res.redirect("/auth-login.html");
     }
-
-    // If there is an Authorization header, let it proceed
-    // The actual token validation will happen in protected routes
+    console.log(`Auth header found for ${req.path}, proceeding`);
   }
 
-  // For all other routes, proceed to the next middleware
   next();
 });
 
