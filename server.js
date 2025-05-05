@@ -121,20 +121,7 @@ app.post("/backfill-ids", async (req, res) => {
       }
     }
 
-    // Update counter so future todos get the next number
-    await Counter.findByIdAndUpdate(
-      { _id: "todoId" },
-      { $set: { seq: counter - 1 } },
-      { upsert: true }
-    );
-
-    res.json({ message: "Backfill complete", total: counter - 1 });
-  } catch (err) {
-    console.error("Error during backfill:", err);
-    res.status(500).json({ error: "Backfill failed" });
-  }
-});
-
+  
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
