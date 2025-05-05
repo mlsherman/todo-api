@@ -18,7 +18,7 @@ document.addEventListener("DOMContentLoaded", function () {
   async function loadTodos() {
     try {
       // Add authentication headers to the request
-      const res = await fetch("/api/todos", {
+      const res = await fetch("/todos", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -38,7 +38,7 @@ document.addEventListener("DOMContentLoaded", function () {
         li.textContent = todo.task;
         li.dataset.id = todo._id;
         li.addEventListener("click", async () => {
-          await fetch(`/api/todos/${todo._id}`, {
+          await fetch(`/todos/${todo._id}`, {
             method: "DELETE",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const task = input.value.trim();
     if (task) {
       try {
-        await fetch("/api/todos", {
+        await fetch("/todos", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

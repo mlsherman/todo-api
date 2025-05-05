@@ -1,5 +1,5 @@
-require('dotenv').config();
-const auth = require('./auth');
+require("dotenv").config();
+const auth = require("./auth");
 const express = require("express");
 const path = require("path");
 const mongoose = require("mongoose");
@@ -34,7 +34,7 @@ const Counter = mongoose.model("Counter", counterSchema);
 const todoSchema = new mongoose.Schema({
   id: { type: Number, unique: true }, // This is for Appian primary key
   task: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }, // Link to User model
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, // Link to User model
 });
 
 // ✅ Pre-save hook to auto-increment `id`
@@ -62,26 +62,29 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use(cors());
 
 // ✅ Routes
+app.use("/auth", auth.routes);
 
+const authMiddleware = auth.middleware;
 // Home
 app.get("/", (req, res) => {
   res.send("Hello from your Node.js To-Do API!");
 });
 
 // Get all todos with pagination (for Appian Record sync)
-app.get("/todos", async (req, res) => {
+app.get("/todos", authMiddleware, async (req, res) => {
   try {
-    const batchNumber = parseInt(req.query.batch || "1"); // Appian sends batch=1, 2, 3...
-    const batchSize = parseInt(req.query.batchSize || "50"); // Default to 50
+    const batchNumber = parseInt(req.query.batch || "1");
+    const batchSize = parseInt(req.query.batchSize || "50");
     const skip = (batchNumber - 1) * batchSize;
 
-    const todos = await Todo.find()
-      .sort({ id: 1 }) // Important: sort by numeric id
+    // Only show todos for the current user
+    const todos = await Todo.find({ user: req.userId }) // Filter by user ID
+      .sort({ id: 1 })
       .skip(skip)
       .limit(batchSize);
 
     if (todos.length === 0) {
-      return res.json([]); // Appian will stop requesting more batches
+      return res.json([]);
     }
 
     res.json(todos);
@@ -92,12 +95,16 @@ app.get("/todos", async (req, res) => {
 });
 
 // Create new todo
-app.post("/todos", async (req, res) => {
+app.post("/todos", authMiddleware, async (req, res) => {
   const { task } = req.body;
   if (!task) return res.status(400).json({ error: "Task is required" });
 
   try {
-    const newTodo = new Todo({ task }); // `id` auto-set
+    // Add user ID to the todo
+    const newTodo = new Todo({
+      task,
+      user: req.userId, // Associate todo with current user
+    });
     await newTodo.save();
     res.status(201).json(newTodo);
   } catch (err) {
@@ -106,10 +113,16 @@ app.post("/todos", async (req, res) => {
 });
 
 // Delete todo by MongoDB _id (not numeric `id`)
-app.delete("/todos/:id", async (req, res) => {
+app.delete("/todos/:id", authMiddleware, async (req, res) => {
   try {
-    const deleted = await Todo.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ error: "Todo not found" });
+    // Only allow deleting todos that belong to the current user
+    const deleted = await Todo.findOneAndDelete({
+      _id: req.params.id,
+      user: req.userId, // Check ownership
+    });
+
+    if (!deleted)
+      return res.status(404).json({ error: "Todo not found or unauthorized" });
     res.json(deleted);
   } catch (err) {
     res.status(400).json({ error: "Invalid ID" });

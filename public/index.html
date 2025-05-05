@@ -28,45 +28,6 @@
       </ul>
     </div>
 
-    <script>
-      const form = document.getElementById("todo-form");
-      const input = document.getElementById("new-todo");
-      const list = document.getElementById("todo-list");
-
-      // Fetch and display todos
-      async function loadTodos() {
-        const res = await fetch("/todos");
-        const todos = await res.json();
-        list.innerHTML = "";
-        todos.forEach((todo) => {
-          const li = document.createElement("li");
-          li.textContent = todo.task;
-          li.dataset.id = todo._id;
-          li.addEventListener("click", async () => {
-            await fetch(`/todos/${todo._id}`, { method: "DELETE" });
-            loadTodos();
-          });
-          list.appendChild(li);
-        });
-      }
-
-      // Add new todo
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const task = input.value.trim();
-        if (task) {
-          await fetch("/todos", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ task }),
-          });
-          input.value = "";
-          loadTodos();
-        }
-      });
-
-      loadTodos();
-    </script>
     <script src="auth-script.js"></script>
   </body>
 </html>
