@@ -260,6 +260,29 @@ app.post("/appian/todos", (req, res) => {
     });
 });
 
+// IMPORTANT: Put the /todos/reorder route BEFORE the /todos/:id route
+
+// Add a reorder endpoint for drag and drop
+app.put("/todos/reorder", authMiddleware, async (req, res) => {
+  try {
+    const { tasks } = req.body;
+
+    // Update each task's order
+    for (const task of tasks) {
+      await Todo.findOneAndUpdate(
+        { _id: task.id, user: req.userId },
+        { order: task.order }
+      );
+    }
+
+    res.status(200).json({ message: "Tasks reordered successfully" });
+  } catch (err) {
+    console.error("Error reordering tasks:", err);
+    res.status(500).json({ error: "Failed to reorder tasks" });
+  }
+});
+
+// This route should come AFTER the specific /todos/reorder route
 app.put("/todos/:id", authMiddleware, async (req, res) => {
   try {
     const { task, dueDate, completed } = req.body;
@@ -283,26 +306,6 @@ app.put("/todos/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error updating todo:", err);
     res.status(400).json({ error: "Invalid request" });
-  }
-});
-
-// Add a reorder endpoint for drag and drop
-app.put("/todos/reorder", authMiddleware, async (req, res) => {
-  try {
-    const { tasks } = req.body;
-
-    // Update each task's order
-    for (const task of tasks) {
-      await Todo.findOneAndUpdate(
-        { _id: task.id, user: req.userId },
-        { order: task.order }
-      );
-    }
-
-    res.status(200).json({ message: "Tasks reordered successfully" });
-  } catch (err) {
-    console.error("Error reordering tasks:", err);
-    res.status(500).json({ error: "Failed to reorder tasks" });
   }
 });
 

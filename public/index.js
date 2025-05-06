@@ -4,29 +4,36 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
+// Define the missing authMiddleware function
+const authMiddleware = (req, res, next) => {
+  // In a real app, this would authenticate the user
+  // For testing purposes, we'll just pass through
+  next();
+};
+
 // Use array for storage (in a real app, this would be a database)
 // Updated code
 let tasks = [
-  { 
-    id: 1, 
-    title: "Learn Node.js", 
-    completed: false, 
+  {
+    id: 1,
+    title: "Learn Node.js",
+    completed: false,
     dueDate: null,
     priority: "high",
     order: 0,
     subtasks: [
       { text: "Read documentation", completed: true },
-      { text: "Build a simple API", completed: false }
-    ]
+      { text: "Build a simple API", completed: false },
+    ],
   },
-  { 
-    id: 2, 
-    title: "Create an API", 
-    completed: false, 
+  {
+    id: 2,
+    title: "Create an API",
+    completed: false,
     dueDate: null,
     priority: "medium",
     order: 1,
-    subtasks: []
+    subtasks: [],
   },
 ];
 
@@ -68,7 +75,7 @@ app.post("/tasks", (req, res) => {
   if (!req.body.title) {
     return res.status(400).json({ error: "Title is required" });
   }
-  
+
   const newTask = {
     id: tasks.length + 1,
     title: req.body.title,
@@ -76,7 +83,7 @@ app.post("/tasks", (req, res) => {
     dueDate: req.body.dueDate || null,
     priority: req.body.priority || "medium",
     order: tasks.length, // Add at the end
-    subtasks: []
+    subtasks: [],
   };
   tasks.push(newTask);
   res.status(201).json(newTask);
@@ -99,18 +106,18 @@ app.delete("/tasks/:id", (req, res) => {
 // Add a reorder endpoint for drag and drop
 app.put("/tasks/reorder", (req, res) => {
   const { tasks: newOrder } = req.body;
-  
+
   // Update each task's order
-  newOrder.forEach(item => {
-    const taskIndex = tasks.findIndex(task => task.id === parseInt(item.id));
+  newOrder.forEach((item) => {
+    const taskIndex = tasks.findIndex((task) => task.id === parseInt(item.id));
     if (taskIndex !== -1) {
       tasks[taskIndex].order = item.order;
     }
   });
-  
+
   // Sort tasks by order
   tasks.sort((a, b) => a.order - b.order);
-  
+
   res.status(200).json({ message: "Tasks reordered successfully" });
 });
 
@@ -118,16 +125,16 @@ app.put("/tasks/reorder", (req, res) => {
 app.post("/tasks/:id/subtasks", (req, res) => {
   const id = parseInt(req.params.id);
   const { text } = req.body;
-  
-  const taskIndex = tasks.findIndex(task => task.id === id);
+
+  const taskIndex = tasks.findIndex((task) => task.id === id);
   if (taskIndex === -1) {
     return res.status(404).json({ error: "Task not found" });
   }
-  
+
   if (!tasks[taskIndex].subtasks) {
     tasks[taskIndex].subtasks = [];
   }
-  
+
   tasks[taskIndex].subtasks.push({ text, completed: false });
   res.status(201).json(tasks[taskIndex]);
 });
@@ -137,26 +144,28 @@ app.put("/tasks/:id/subtasks/:index", (req, res) => {
   const id = parseInt(req.params.id);
   const subtaskIndex = parseInt(req.params.index);
   const { completed, text } = req.body;
-  
-  const taskIndex = tasks.findIndex(task => task.id === id);
+
+  const taskIndex = tasks.findIndex((task) => task.id === id);
   if (taskIndex === -1) {
     return res.status(404).json({ error: "Task not found" });
   }
-  
-  if (!tasks[taskIndex].subtasks || 
-      subtaskIndex < 0 || 
-      subtaskIndex >= tasks[taskIndex].subtasks.length) {
+
+  if (
+    !tasks[taskIndex].subtasks ||
+    subtaskIndex < 0 ||
+    subtaskIndex >= tasks[taskIndex].subtasks.length
+  ) {
     return res.status(404).json({ error: "Subtask not found" });
   }
-  
+
   if (completed !== undefined) {
     tasks[taskIndex].subtasks[subtaskIndex].completed = completed;
   }
-  
+
   if (text) {
     tasks[taskIndex].subtasks[subtaskIndex].text = text;
   }
-  
+
   res.status(200).json(tasks[taskIndex]);
 });
 
@@ -164,28 +173,44 @@ app.put("/tasks/:id/subtasks/:index", (req, res) => {
 app.delete("/tasks/:id/subtasks/:index", (req, res) => {
   const id = parseInt(req.params.id);
   const subtaskIndex = parseInt(req.params.index);
-  
-  const taskIndex = tasks.findIndex(task => task.id === id);
+
+  const taskIndex = tasks.findIndex((task) => task.id === id);
   if (taskIndex === -1) {
     return res.status(404).json({ error: "Task not found" });
   }
-  
-  if (!tasks[taskIndex].subtasks || 
-      subtaskIndex < 0 || 
-      subtaskIndex >= tasks[taskIndex].subtasks.length) {
+
+  if (
+    !tasks[taskIndex].subtasks ||
+    subtaskIndex < 0 ||
+    subtaskIndex >= tasks[taskIndex].subtasks.length
+  ) {
     return res.status(404).json({ error: "Subtask not found" });
   }
-  
+
   tasks[taskIndex].subtasks.splice(subtaskIndex, 1);
   res.status(200).json(tasks[taskIndex]);
 });
 
-// If using a router
+// Create a router for additional routes
 const todoRouter = express.Router();
 
 // Add routes to todoRouter instead of app
 todoRouter.put("/reorder", authMiddleware, async (req, res) => {
-  // Code here
+  // Implementation for router-based reordering
+  const { tasks: newOrder } = req.body;
+
+  // Update each task's order
+  newOrder.forEach((item) => {
+    const taskIndex = tasks.findIndex((task) => task.id === parseInt(item.id));
+    if (taskIndex !== -1) {
+      tasks[taskIndex].order = item.order;
+    }
+  });
+
+  // Sort tasks by order
+  tasks.sort((a, b) => a.order - b.order);
+
+  res.status(200).json({ message: "Tasks reordered successfully" });
 });
 
 // Then make sure it's mounted
