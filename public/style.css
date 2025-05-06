@@ -5,6 +5,10 @@ body {
   color: #e1e1e1;
   margin: 0;
   padding: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .container {
@@ -15,14 +19,6 @@ body {
   width: 100%;
   max-width: 600px;
   text-align: center;
-}
-
-.app-modes {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  margin-bottom: 1rem;
 }
 
 h1 {
@@ -90,30 +86,6 @@ li:hover {
   background: #555;
 }
 
-select {
-  padding: 0.4rem;
-  border-radius: 6px;
-  border: 1px solid #555;
-  background-color: #444;
-  color: #f1f1f1;
-}
-
-/* App mode styles */
-.app-modes button {
-  padding: 0.4rem 0.8rem;
-  margin: 0 0.3rem;
-  border-radius: 20px;
-  background-color: #555;
-  border: none;
-  color: white;
-  cursor: pointer;
-}
-
-.app-modes button.active {
-  background-color: #007bff;
-}
-
-/* Filter section styles */
 .filter-section {
   display: flex;
   justify-content: space-between;
@@ -128,80 +100,12 @@ select {
   gap: 0.5rem;
 }
 
-/* Priority styles */
-.priority-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  display: inline-block;
-  margin-right: 8px;
-}
-
-.priority-high {
-  background-color: #e74c3c;
-}
-
-.priority-medium {
-  background-color: #f39c12;
-}
-
-.priority-low {
-  background-color: #3498db;
-}
-
-.task-priority {
-  font-size: 0.7rem;
-  padding: 0.1rem 0.3rem;
-  border-radius: 3px;
-  margin-left: 5px;
-  color: white;
-}
-
-.priority-high-badge {
-  background-color: #e74c3c;
-}
-
-.priority-medium-badge {
-  background-color: #f39c12;
-}
-
-.priority-low-badge {
-  background-color: #3498db;
-}
-
-/* Focus mode styles */
-.focus-mode-active li:not(.today-task) {
-  opacity: 0.4;
-  filter: grayscale(0.5);
-}
-
-.today-task {
-  box-shadow: 0 0 0 2px #007bff;
-}
-
-/* Drag and drop styles */
-.sortable-list li {
-  cursor: grab;
-  position: relative;
-}
-
-.sortable-list li:active {
-  cursor: grabbing;
-}
-
-.sortable-ghost {
-  opacity: 0.5;
-  background-color: #555;
-}
-
-.sortable-chosen {
-  background-color: #333;
-}
-
-.drag-handle {
-  margin-right: 8px;
-  color: #aaa;
-  cursor: grab;
+select {
+  padding: 0.4rem;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background-color: #444;
+  color: #f1f1f1;
 }
 
 /* View toggle styles */
@@ -328,6 +232,97 @@ select {
   padding: 3px 6px;
   border-radius: 4px;
   font-size: 0.8rem;
+}
+
+/* App mode styles */
+.app-modes button {
+  padding: 0.4rem 0.8rem;
+  margin: 0 0.3rem;
+  border-radius: 20px;
+  background-color: #555;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.app-modes button.active {
+  background-color: #007bff;
+}
+
+/* Priority styles */
+.priority-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+}
+
+.priority-high {
+  background-color: #e74c3c;
+}
+
+.priority-medium {
+  background-color: #f39c12;
+}
+
+.priority-low {
+  background-color: #3498db;
+}
+
+.task-priority {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 3px;
+  margin-left: 5px;
+  color: white;
+}
+
+.priority-high-badge {
+  background-color: #e74c3c;
+}
+
+.priority-medium-badge {
+  background-color: #f39c12;
+}
+
+.priority-low-badge {
+  background-color: #3498db;
+}
+
+/* Focus mode styles */
+.focus-mode-active li:not(.today-task) {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+
+.today-task {
+  box-shadow: 0 0 0 2px #007bff;
+}
+
+/* Drag and drop styles */
+.sortable-list li {
+  cursor: grab;
+  position: relative;
+}
+
+.sortable-list li:active {
+  cursor: grabbing;
+}
+
+.sortable-ghost {
+  opacity: 0.5;
+  background-color: #555;
+}
+
+.sortable-chosen {
+  background-color: #333;
+}
+
+.drag-handle {
+  margin-right: 8px;
+  color: #aaa;
+  cursor: grab;
 }
 
 /* Modal styles */
