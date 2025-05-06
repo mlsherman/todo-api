@@ -19,6 +19,29 @@
         new to-dos and delete ones you've completed. All stored in MongoDB!
       </p>
 
+      <!-- Filter options -->
+      <div class="filter-section">
+        <div class="filter-container">
+          <label for="status-filter">Filter by status:</label>
+          <select id="status-filter">
+            <option value="all">All Tasks</option>
+            <option value="completed">Completed</option>
+            <option value="incomplete">Incomplete</option>
+          </select>
+        </div>
+        <div class="filter-container">
+          <label for="date-filter">Filter by date:</label>
+          <input type="date" id="date-filter">
+          <button id="clear-date-filter">Clear</button>
+        </div>
+      </div>
+
+      <!-- Calendar view toggle -->
+      <div class="view-toggle">
+        <button id="list-view-btn" class="active">List View</button>
+        <button id="calendar-view-btn">Calendar View</button>
+      </div>
+
       <form id="todo-form">
         <input
           type="text"
@@ -26,12 +49,38 @@
           placeholder="Enter a new task..."
           required
         />
+        <input 
+          type="date" 
+          id="todo-date"
+        />
         <button type="submit">Add Task</button>
       </form>
 
-      <ul id="todo-list">
-        <!-- Todos will appear here -->
-      </ul>
+      <!-- List view container -->
+      <div id="list-view" class="view-container active">
+        <ul id="todo-list">
+          <!-- Todos will appear here -->
+        </ul>
+      </div>
+
+      <!-- Calendar view container -->
+      <div id="calendar-view" class="view-container">
+        <div class="calendar-header">
+          <button id="prev-month">&lt;</button>
+          <h2 id="current-month">May 2025</h2>
+          <button id="next-month">&gt;</button>
+        </div>
+        <div class="calendar-grid">
+          <div class="weekday">Sun</div>
+          <div class="weekday">Mon</div>
+          <div class="weekday">Tue</div>
+          <div class="weekday">Wed</div>
+          <div class="weekday">Thu</div>
+          <div class="weekday">Fri</div>
+          <div class="weekday">Sat</div>
+          <!-- Calendar days will be generated here -->
+        </div>
+      </div>
     </div>
 
     <script src="script.js"></script>

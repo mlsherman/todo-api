@@ -34,7 +34,9 @@ const Counter = mongoose.model("Counter", counterSchema);
 const todoSchema = new mongoose.Schema({
   id: { type: Number, unique: true }, // This is for Appian primary key
   task: { type: String, required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false }, // Changed required to false
+  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
+  dueDate: { type: Date, default: null },
+  completed: { type: Boolean, default: false }, // Changed required to false
 });
 
 // ✅ Pre-save hook to auto-increment `id`
@@ -151,7 +153,9 @@ app.post("/todos", authMiddleware, async (req, res) => {
   try {
     const newTodo = new Todo({
       task,
-      user: req.userId, // Associate todo with current user
+      user: req.userId,
+      dueDate: dueDate || null,
+      completed: false, // Associate todo with current user
     });
     await newTodo.save();
     res.status(201).json(newTodo);
@@ -247,6 +251,32 @@ app.post("/appian/todos", (req, res) => {
       console.error("Error creating todo for Appian:", err);
       res.status(500).json({ error: "Failed to create todo" });
     });
+});
+
+app.put("/todos/:id", authMiddleware, async (req, res) => {
+  try {
+    const { task, dueDate, completed } = req.body;
+    const updateData = {};
+
+    if (task !== undefined) updateData.task = task;
+    if (dueDate !== undefined) updateData.dueDate = dueDate;
+    if (completed !== undefined) updateData.completed = completed;
+
+    const updated = await Todo.findOneAndUpdate(
+      { _id: req.params.id, user: req.userId },
+      updateData,
+      { new: true }
+    );
+
+    if (!updated) {
+      return res.status(404).json({ error: "Todo not found or unauthorized" });
+    }
+
+    res.json(updated);
+  } catch (err) {
+    console.error("Error updating todo:", err);
+    res.status(400).json({ error: "Invalid request" });
+  }
 });
 
 // Delete todo - Appian specific endpoint
