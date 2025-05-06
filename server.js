@@ -32,11 +32,17 @@ const Counter = mongoose.model("Counter", counterSchema);
 
 // ✅ Todo schema with short numeric `id` - Updated to make user optional
 const todoSchema = new mongoose.Schema({
-  id: { type: Number, unique: true }, // This is for Appian primary key
+  id: { type: Number, unique: true },
   task: { type: String, required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
   dueDate: { type: Date, default: null },
-  completed: { type: Boolean, default: false }, // Changed required to false
+  completed: { type: Boolean, default: false },
+  priority: { type: String, enum: ['high', 'medium', 'low'], default: 'medium' },
+  order: { type: Number, default: 0 },
+  subtasks: [{
+    text: { type: String, required: true },
+    completed: { type: Boolean, default: false }
+  }]
 });
 
 // ✅ Pre-save hook to auto-increment `id`
@@ -147,15 +153,21 @@ app.get("/todos", authMiddleware, async (req, res) => {
 
 // Create new todo
 app.post("/todos", authMiddleware, async (req, res) => {
-  const { task } = req.body;
+  const { task, dueDate, priority } = req.body;
   if (!task) return res.status(400).json({ error: "Task is required" });
 
   try {
+    // Get count of existing todos to set order
+    const count = await Todo.countDocuments({ user: req.userId });
+    
     const newTodo = new Todo({
       task,
       user: req.userId,
-      dueDate: req.body.dueDate || null,
-      completed: false, // Associate todo with current user
+      dueDate: dueDate || null,
+      completed: false,
+      priority: priority || 'medium',
+      order: count, // Set order to end of list
+      subtasks: []
     });
     await newTodo.save();
     res.status(201).json(newTodo);
@@ -276,6 +288,102 @@ app.put("/todos/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error updating todo:", err);
     res.status(400).json({ error: "Invalid request" });
+  }
+});
+
+// Add a reorder endpoint for drag and drop
+app.put("/todos/reorder", authMiddleware, async (req, res) => {
+  try {
+    const { tasks } = req.body;
+    
+    // Update each task's order
+    for (const task of tasks) {
+      await Todo.findOneAndUpdate(
+        { _id: task.id, user: req.userId },
+        { order: task.order }
+      );
+    }
+    
+    res.status(200).json({ message: "Tasks reordered successfully" });
+  } catch (err) {
+    console.error("Error reordering tasks:", err);
+    res.status(500).json({ error: "Failed to reorder tasks" });
+  }
+});
+
+// Add a subtask
+app.post("/todos/:id/subtasks", authMiddleware, async (req, res) => {
+  try {
+    const { text } = req.body;
+    
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.userId });
+    if (!todo) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+    
+    todo.subtasks.push({ text, completed: false });
+    await todo.save();
+    
+    res.status(201).json(todo);
+  } catch (err) {
+    console.error("Error adding subtask:", err);
+    res.status(500).json({ error: "Failed to add subtask" });
+  }
+});
+
+// Update a subtask
+app.put("/todos/:id/subtasks/:index", authMiddleware, async (req, res) => {
+  try {
+    const { completed, text } = req.body;
+    const subtaskIndex = parseInt(req.params.index);
+    
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.userId });
+    if (!todo) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+    
+    if (subtaskIndex < 0 || subtaskIndex >= todo.subtasks.length) {
+      return res.status(404).json({ error: "Subtask not found" });
+    }
+    
+    if (completed !== undefined) {
+      todo.subtasks[subtaskIndex].completed = completed;
+    }
+    
+    if (text) {
+      todo.subtasks[subtaskIndex].text = text;
+    }
+    
+    await todo.save();
+    
+    res.status(200).json(todo);
+  } catch (err) {
+    console.error("Error updating subtask:", err);
+    res.status(500).json({ error: "Failed to update subtask" });
+  }
+});
+
+// Delete a subtask
+app.delete("/todos/:id/subtasks/:index", authMiddleware, async (req, res) => {
+  try {
+    const subtaskIndex = parseInt(req.params.index);
+    
+    const todo = await Todo.findOne({ _id: req.params.id, user: req.userId });
+    if (!todo) {
+      return res.status(404).json({ error: "Todo not found" });
+    }
+    
+    if (subtaskIndex < 0 || subtaskIndex >= todo.subtasks.length) {
+      return res.status(404).json({ error: "Subtask not found" });
+    }
+    
+    todo.subtasks.splice(subtaskIndex, 1);
+    await todo.save();
+    
+    res.status(200).json(todo);
+  } catch (err) {
+    console.error("Error deleting subtask:", err);
+    res.status(500).json({ error: "Failed to delete subtask" });
   }
 });
 

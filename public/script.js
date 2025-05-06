@@ -1,12 +1,16 @@
-// Todo App with Authentication, Due Dates, and Calendar View
+// Todo App with Enhanced User Experience
 document.addEventListener("DOMContentLoaded", function () {
   const form = document.getElementById("todo-form");
   const taskInput = document.getElementById("new-todo");
   const dateInput = document.getElementById("todo-date");
+  const prioritySelect = document.getElementById("todo-priority");
   const list = document.getElementById("todo-list");
   const statusFilter = document.getElementById("status-filter");
+  const priorityFilter = document.getElementById("priority-filter");
   const dateFilter = document.getElementById("date-filter");
   const clearDateFilterBtn = document.getElementById("clear-date-filter");
+  const focusModeBtn = document.getElementById("focus-mode-btn");
+  const normalModeBtn = document.getElementById("normal-mode-btn");
   const listViewBtn = document.getElementById("list-view-btn");
   const calendarViewBtn = document.getElementById("calendar-view-btn");
   const listView = document.getElementById("list-view");
@@ -16,8 +20,19 @@ document.addEventListener("DOMContentLoaded", function () {
   const currentMonthElement = document.getElementById("current-month");
   const calendarGrid = document.querySelector(".calendar-grid");
 
+  // Modal elements
+  const taskModal = document.getElementById("task-modal");
+  const closeModal = document.querySelector(".close-modal");
+  const modalTaskContent = document.getElementById("modal-task-content");
+  const subtaskList = document.getElementById("subtask-list");
+  const addSubtaskForm = document.getElementById("add-subtask-form");
+  const newSubtaskInput = document.getElementById("new-subtask");
+  const subtaskProgressFill = document.getElementById("subtask-progress-fill");
+  const subtaskProgressText = document.getElementById("subtask-progress-text");
+
   let allTodos = [];
   let currentMonth = new Date();
+  let currentTodoId = null; // Used for the modal
 
   // Set default due date to today
   const today = new Date();
@@ -33,6 +48,22 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Add logout button
   addLogoutButton();
+
+  // Initialize drag and drop
+  initDragAndDrop();
+
+  // Event listeners for modes
+  focusModeBtn.addEventListener("click", function () {
+    setActiveMode(focusModeBtn);
+    list.classList.add("focus-mode-active");
+    filterTodos(); // Reapply filters
+  });
+
+  normalModeBtn.addEventListener("click", function () {
+    setActiveMode(normalModeBtn);
+    list.classList.remove("focus-mode-active");
+    filterTodos(); // Reapply filters
+  });
 
   // Event listeners for view toggles
   listViewBtn.addEventListener("click", function () {
@@ -57,11 +88,63 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Event listeners for filters
   statusFilter.addEventListener("change", filterTodos);
+  priorityFilter.addEventListener("change", filterTodos);
   dateFilter.addEventListener("change", filterTodos);
   clearDateFilterBtn.addEventListener("click", function () {
     dateFilter.value = "";
     filterTodos();
   });
+
+  // Modal event listeners
+  closeModal.addEventListener("click", closeTaskModal);
+  window.addEventListener("click", function (event) {
+    if (event.target === taskModal) {
+      closeTaskModal();
+    }
+  });
+
+  // Subtask form submission
+  addSubtaskForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    addSubtask();
+  });
+
+  // Initialize drag and drop functionality
+  function initDragAndDrop() {
+    new Sortable(list, {
+      animation: 150,
+      ghostClass: "sortable-ghost",
+      chosenClass: "sortable-chosen",
+      onEnd: function (evt) {
+        updateTaskOrder(evt);
+      },
+    });
+  }
+
+  // Update the order of tasks after drag and drop
+  async function updateTaskOrder(evt) {
+    const tasks = Array.from(list.children);
+    const newOrder = tasks.map((task, index) => ({
+      id: task.dataset.id,
+      order: index,
+    }));
+
+    try {
+      // Send the new order to the server
+      await fetch("/todos/reorder", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tasks: newOrder }),
+      });
+    } catch (error) {
+      console.error("Error updating task order:", error);
+      // If error, reload todos to restore original order
+      loadTodos();
+    }
+  }
 
   // Fetch and display todos with authentication
   async function loadTodos() {
@@ -82,6 +165,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       allTodos = await res.json();
 
+      // Sort todos by order if available
+      allTodos.sort((a, b) => (a.order || 0) - (b.order || 0));
+
       // Apply filters and render todos
       filterTodos();
 
@@ -97,7 +183,9 @@ document.addEventListener("DOMContentLoaded", function () {
   // Filter todos based on current filter settings
   function filterTodos() {
     const statusValue = statusFilter.value;
+    const priorityValue = priorityFilter.value;
     const dateValue = dateFilter.value;
+    const focusModeActive = focusModeBtn.classList.contains("active");
 
     let filteredTodos = [...allTodos];
 
@@ -108,11 +196,27 @@ document.addEventListener("DOMContentLoaded", function () {
       filteredTodos = filteredTodos.filter((todo) => !todo.completed);
     }
 
+    // Filter by priority
+    if (priorityValue !== "all") {
+      filteredTodos = filteredTodos.filter(
+        (todo) => todo.priority === priorityValue
+      );
+    }
+
     // Filter by date
     if (dateValue) {
       filteredTodos = filteredTodos.filter((todo) => {
         if (!todo.dueDate) return false;
         return todo.dueDate.split("T")[0] === dateValue;
+      });
+    }
+
+    // Apply focus mode (show only today's tasks)
+    if (focusModeActive) {
+      const todayStr = new Date().toISOString().split("T")[0];
+      filteredTodos = filteredTodos.filter((todo) => {
+        if (!todo.dueDate) return false;
+        return todo.dueDate.split("T")[0] === todayStr;
       });
     }
 
@@ -133,22 +237,80 @@ document.addEventListener("DOMContentLoaded", function () {
       return;
     }
 
+    const today = new Date().toISOString().split("T")[0];
+
     todos.forEach((todo) => {
       const li = document.createElement("li");
       li.dataset.id = todo._id;
+
+      // Check if task is due today for focus mode highlighting
+      if (todo.dueDate && todo.dueDate.split("T")[0] === today) {
+        li.classList.add("today-task");
+      }
 
       // Add completed class if todo is completed
       if (todo.completed) {
         li.classList.add("completed-task");
       }
 
+      // Create drag handle
+      const dragHandle = document.createElement("span");
+      dragHandle.className = "drag-handle";
+      dragHandle.innerHTML = "☰";
+      li.appendChild(dragHandle);
+
+      // Create priority indicator
+      const priorityIndicator = document.createElement("span");
+      priorityIndicator.className = `priority-indicator priority-${
+        todo.priority || "medium"
+      }`;
+      li.appendChild(priorityIndicator);
+
       // Create task content div
       const taskContent = document.createElement("div");
+      taskContent.className = "task-content";
 
       // Add task text
       const taskText = document.createElement("span");
       taskText.textContent = todo.task;
       taskContent.appendChild(taskText);
+
+      // Add priority badge
+      const priorityBadge = document.createElement("span");
+      priorityBadge.className = `task-priority priority-${
+        todo.priority || "medium"
+      }-badge`;
+      priorityBadge.textContent = todo.priority
+        ? todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)
+        : "Medium";
+      taskContent.appendChild(priorityBadge);
+
+      // Add subtask indicator if any
+      if (todo.subtasks && todo.subtasks.length > 0) {
+        const subtaskCount = todo.subtasks.length;
+        const completedCount = todo.subtasks.filter(
+          (subtask) => subtask.completed
+        ).length;
+        const subtaskIndicator = document.createElement("div");
+        subtaskIndicator.className = "subtask-indicator";
+
+        // Add progress bar
+        const progressBar = document.createElement("div");
+        progressBar.className = "progress-bar";
+        const progressFill = document.createElement("div");
+        progressFill.className = "progress-fill";
+        progressFill.style.width = `${(completedCount / subtaskCount) * 100}%`;
+        progressBar.appendChild(progressFill);
+        subtaskIndicator.appendChild(progressBar);
+
+        // Add count text
+        const countText = document.createElement("span");
+        countText.className = "subtask-count";
+        countText.textContent = `${completedCount}/${subtaskCount}`;
+        subtaskIndicator.appendChild(countText);
+
+        taskContent.appendChild(subtaskIndicator);
+      }
 
       // Add due date if exists
       if (todo.dueDate) {
@@ -158,6 +320,11 @@ document.addEventListener("DOMContentLoaded", function () {
         dateElement.textContent = `Due: ${dueDate.toLocaleDateString()}`;
         taskContent.appendChild(dateElement);
       }
+
+      // Add click event to open details modal
+      taskContent.addEventListener("click", () => {
+        openTaskModal(todo);
+      });
 
       // Create action buttons
       const actionsDiv = document.createElement("div");
@@ -222,11 +389,206 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  // Open task details modal
+  function openTaskModal(todo) {
+    currentTodoId = todo._id;
+
+    // Set task details in modal
+    modalTaskContent.innerHTML = `
+      <h3>${todo.task}</h3>
+      <div class="modal-task-meta">
+        <p><strong>Priority:</strong> <span class="priority-${
+          todo.priority || "medium"
+        }-badge">${
+      todo.priority
+        ? todo.priority.charAt(0).toUpperCase() + todo.priority.slice(1)
+        : "Medium"
+    }</span></p>
+        ${
+          todo.dueDate
+            ? `<p><strong>Due Date:</strong> ${new Date(
+                todo.dueDate
+              ).toLocaleDateString()}</p>`
+            : ""
+        }
+        <p><strong>Status:</strong> ${
+          todo.completed ? "Completed" : "Incomplete"
+        }</p>
+      </div>
+    `;
+
+    // Render subtasks
+    renderSubtasks(todo);
+
+    // Show modal
+    taskModal.style.display = "block";
+  }
+
+  // Close task modal
+  function closeTaskModal() {
+    taskModal.style.display = "none";
+    currentTodoId = null;
+  }
+
+  // Render subtasks in modal
+  function renderSubtasks(todo) {
+    subtaskList.innerHTML = "";
+
+    if (!todo.subtasks || todo.subtasks.length === 0) {
+      subtaskList.innerHTML = "<li>No subtasks yet. Add one below!</li>";
+      subtaskProgressFill.style.width = "0%";
+      subtaskProgressText.textContent = "0/0 completed";
+      return;
+    }
+
+    const subtasks = todo.subtasks;
+    const totalSubtasks = subtasks.length;
+    const completedSubtasks = subtasks.filter(
+      (subtask) => subtask.completed
+    ).length;
+    const completionPercentage =
+      totalSubtasks > 0 ? (completedSubtasks / totalSubtasks) * 100 : 0;
+
+    // Update progress bar
+    subtaskProgressFill.style.width = `${completionPercentage}%`;
+    subtaskProgressText.textContent = `${completedSubtasks}/${totalSubtasks} completed`;
+
+    // Render each subtask
+    subtasks.forEach((subtask, index) => {
+      const subtaskItem = document.createElement("li");
+      subtaskItem.className = "subtask-item";
+
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.className = "subtask-checkbox";
+      checkbox.checked = subtask.completed;
+      checkbox.addEventListener("change", () => {
+        toggleSubtaskComplete(index, checkbox.checked);
+      });
+
+      const subtaskText = document.createElement("span");
+      subtaskText.className = `subtask-text ${
+        subtask.completed ? "completed" : ""
+      }`;
+      subtaskText.textContent = subtask.text;
+
+      const deleteButton = document.createElement("span");
+      deleteButton.className = "delete-subtask";
+      deleteButton.textContent = "✕";
+      deleteButton.addEventListener("click", () => {
+        deleteSubtask(index);
+      });
+
+      subtaskItem.appendChild(checkbox);
+      subtaskItem.appendChild(subtaskText);
+      subtaskItem.appendChild(deleteButton);
+      subtaskList.appendChild(subtaskItem);
+    });
+  }
+
+  // Add a new subtask
+  async function addSubtask() {
+    if (!currentTodoId) return;
+
+    const subtaskText = newSubtaskInput.value.trim();
+    if (!subtaskText) return;
+
+    try {
+      await fetch(`/todos/${currentTodoId}/subtasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: subtaskText }),
+      });
+
+      // Clear input
+      newSubtaskInput.value = "";
+
+      // Reload todos and update modal
+      const res = await fetch(`/todos/${currentTodoId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const todo = await res.json();
+      renderSubtasks(todo);
+
+      // Also refresh the main todo list
+      loadTodos();
+    } catch (error) {
+      console.error("Error adding subtask:", error);
+    }
+  }
+
+  // Toggle subtask completed status
+  async function toggleSubtaskComplete(index, completed) {
+    if (!currentTodoId) return;
+
+    try {
+      await fetch(`/todos/${currentTodoId}/subtasks/${index}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ completed }),
+      });
+
+      // Reload todos and update modal
+      const res = await fetch(`/todos/${currentTodoId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const todo = await res.json();
+      renderSubtasks(todo);
+
+      // Also refresh the main todo list
+      loadTodos();
+    } catch (error) {
+      console.error("Error updating subtask:", error);
+    }
+  }
+
+  // Delete a subtask
+  async function deleteSubtask(index) {
+    if (!currentTodoId) return;
+
+    try {
+      await fetch(`/todos/${currentTodoId}/subtasks/${index}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      // Reload todos and update modal
+      const res = await fetch(`/todos/${currentTodoId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const todo = await res.json();
+      renderSubtasks(todo);
+
+      // Also refresh the main todo list
+      loadTodos();
+    } catch (error) {
+      console.error("Error deleting subtask:", error);
+    }
+  }
+
   // Add new todo with authentication
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const task = taskInput.value.trim();
     const dueDate = dateInput.value;
+    const priority = prioritySelect.value;
 
     if (task) {
       try {
@@ -239,6 +601,8 @@ document.addEventListener("DOMContentLoaded", function () {
           body: JSON.stringify({
             task,
             dueDate: dueDate ? new Date(dueDate).toISOString() : null,
+            priority,
+            subtasks: [],
           }),
         });
         taskInput.value = "";
@@ -261,7 +625,30 @@ document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll(".view-container").forEach((view) => {
       view.classList.remove("active");
     });
+    viewElement.classList.add("active"); //
+  }
+
+  // Set active view
+  function setActiveView(button, viewElement) {
+    // Update button styles
+    document.querySelectorAll(".view-toggle button").forEach((btn) => {
+      btn.classList.remove("active");
+    });
+    button.classList.add("active");
+
+    // Update view containers
+    document.querySelectorAll(".view-container").forEach((view) => {
+      view.classList.remove("active");
+    });
     viewElement.classList.add("active");
+  }
+
+  // Set active mode
+  function setActiveMode(button) {
+    document.querySelectorAll(".app-modes button").forEach((btn) => {
+      btn.classList.remove("active");
+    });
+    button.classList.add("active");
   }
 
   // Render calendar view
@@ -334,22 +721,38 @@ document.addEventListener("DOMContentLoaded", function () {
         );
       });
 
+      // Sort tasks by priority (high to low)
+      todosForDay.sort((a, b) => {
+        const priorityOrder = { high: 0, medium: 1, low: 2 };
+        return (
+          (priorityOrder[a.priority || "medium"] || 1) -
+          (priorityOrder[b.priority || "medium"] || 1)
+        );
+      });
+
       // Add tasks to day element
       todosForDay.forEach((todo) => {
         const taskElement = document.createElement("div");
         taskElement.className = "day-task";
+
+        // Add priority indicator
+        const priorityDot = document.createElement("span");
+        priorityDot.className = `priority-indicator priority-${
+          todo.priority || "medium"
+        }`;
+        taskElement.appendChild(priorityDot);
+
         if (todo.completed) {
           taskElement.classList.add("completed-task");
         }
-        taskElement.textContent = todo.task;
+
+        const taskText = document.createElement("span");
+        taskText.textContent = todo.task;
+        taskElement.appendChild(taskText);
+
         taskElement.dataset.id = todo._id;
         taskElement.addEventListener("click", () => {
-          // Show task details or allow editing
-          alert(
-            `Task: ${todo.task}\nStatus: ${
-              todo.completed ? "Completed" : "Incomplete"
-            }`
-          );
+          openTaskModal(todo);
         });
         tasksContainer.appendChild(taskElement);
       });
