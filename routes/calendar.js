@@ -1,9 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const authMiddleware = require("../auth/middleware"); // Corrected path to your auth middleware
-const mongoose = require("mongoose");
-const User = mongoose.model("User"); // Reference your User model
-const Todo = mongoose.model("Todo"); // Reference your Todo model
+const auth = require("../auth"); // Import your auth module
+const authMiddleware = auth.middleware; // Get your auth middleware
+
+// Import the google calendar service
 const googleCalendar = require("../services/calendar/google-calendar");
 
 // Route to initiate Google OAuth flow
@@ -29,7 +29,11 @@ router.get("/auth/google/callback", authMiddleware, async (req, res) => {
     // Exchange code for tokens
     const tokens = await googleCalendar.getTokens(code);
 
-    // Store tokens in user document
+    // Import mongoose here since we need the model
+    const mongoose = require("mongoose");
+    // Get User model - this will only work after the model has been registered
+    const User = mongoose.model("User");
+
     await User.findByIdAndUpdate(req.userId, {
       "googleCalendar.tokens": tokens,
       "googleCalendar.connected": true,
@@ -46,6 +50,8 @@ router.get("/auth/google/callback", authMiddleware, async (req, res) => {
 // Get user's calendar events
 router.get("/events", authMiddleware, async (req, res) => {
   try {
+    const mongoose = require("mongoose");
+    const User = mongoose.model("User");
     const user = await User.findById(req.userId);
 
     if (!user.googleCalendar || !user.googleCalendar.connected) {
@@ -69,6 +75,10 @@ router.get("/events", authMiddleware, async (req, res) => {
 // Create calendar event from a task
 router.post("/events/task/:id", authMiddleware, async (req, res) => {
   try {
+    const mongoose = require("mongoose");
+    const User = mongoose.model("User");
+    const Todo = mongoose.model("Todo");
+
     const user = await User.findById(req.userId);
 
     if (!user.googleCalendar || !user.googleCalendar.connected) {
@@ -87,7 +97,12 @@ router.post("/events/task/:id", authMiddleware, async (req, res) => {
     );
 
     // Optionally, update the todo with the event ID
-    todo.calendarEventId = event.id;
+    // First check if calendarEventId exists in the schema
+    if (!todo.calendarEventId) {
+      todo.set("calendarEventId", event.id);
+    } else {
+      todo.calendarEventId = event.id;
+    }
     await todo.save();
 
     res.status(201).json(event);
@@ -100,6 +115,10 @@ router.post("/events/task/:id", authMiddleware, async (req, res) => {
 // Sync all user's tasks with calendar
 router.post("/sync", authMiddleware, async (req, res) => {
   try {
+    const mongoose = require("mongoose");
+    const User = mongoose.model("User");
+    const Todo = mongoose.model("Todo");
+
     const user = await User.findById(req.userId);
 
     if (!user.googleCalendar || !user.googleCalendar.connected) {
