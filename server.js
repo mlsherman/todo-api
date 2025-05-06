@@ -154,7 +154,7 @@ app.post("/todos", authMiddleware, async (req, res) => {
     const newTodo = new Todo({
       task,
       user: req.userId,
-      dueDate: dueDate || null,
+      dueDate: req.body.dueDate || null,
       completed: false, // Associate todo with current user
     });
     await newTodo.save();
