@@ -1,0 +1,17 @@
+body {
+    background-color: green;
+    color: white;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+  }
+  
+  .test-container {
+    background-color: #333;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+  }
