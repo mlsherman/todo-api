@@ -6,6 +6,7 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
+const calendarRoutes = require('./routes/calendar')
 
 // ✅ MongoDB connection string
 const dbURI =
@@ -74,6 +75,7 @@ const Todo = mongoose.model("Todo", todoSchema);
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
+app.use('/calendar', calendarRoutes);
 
 // Auth routes
 app.use("/auth", auth.routes);

@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node index.js",
-  "test": "jest",
-  "test:watch": "jest --watch"
-},
+    "start": "node index.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
   "engines": {
     "node": "18.x"
   },
@@ -19,6 +19,8 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "google-auth-library": "^9.15.1",
+    "googleapis": "^148.0.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.14.1"
   },

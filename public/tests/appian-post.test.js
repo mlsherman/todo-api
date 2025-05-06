@@ -1,7 +1,7 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const dbHandler = require("./db-handler");
-const app = require("../index"); // Make sure this matches your main file name
+const app = require("../../index"); // Make sure this matches your main file name
 
 // Setup connection to the database
 beforeAll(async () => await dbHandler.connect());
@@ -46,7 +46,6 @@ describe("Appian API - Creating Todos", () => {
       .set("APPIAN_API_KEY", "test-api-key")
       .send({});
 
-     
     // Check that we get a 400 Bad Request error
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("error");

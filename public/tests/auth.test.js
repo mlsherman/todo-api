@@ -1,7 +1,7 @@
 const request = require("supertest");
 const mongoose = require("mongoose");
 const dbHandler = require("./db-handler");
-const app = require("../index"); // Make sure this matches your main file name
+const app = require("../../index"); // Make sure this matches your main file name
 
 // Setup connection to the database
 beforeAll(async () => await dbHandler.connect());
