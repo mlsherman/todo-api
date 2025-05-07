@@ -193,17 +193,7 @@ app.delete("/tasks/:id/subtasks/:index", (req, res) => {
 
 // Add this to your index.js file or create a new calendar.js file and include it in your HTML
 
-// Calendar integration functions
-document.addEventListener("DOMContentLoaded", function () {
-  // Check if calendar elements exist before setting up calendar functionality
-  const connectButton = document.getElementById("connect-calendar");
-  const calendarStatus = document.getElementById("calendar-status");
-  const calendarMessage = document.getElementById("calendar-message");
 
-  if (!connectButton || !calendarStatus || !calendarMessage) {
-    console.log("Calendar UI elements not found. Skipping calendar setup.");
-    return;
-  }
 
   // Check if user is logged in
   const token = localStorage.getItem("token");
