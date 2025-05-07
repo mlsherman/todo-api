@@ -10,7 +10,7 @@ const { generateToken } = require("./config");
  */
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, email: providedEmail } = req.body;
 
     // Validate inputs
     if (!username || !password) {
@@ -25,8 +25,12 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Username already exists" });
     }
 
-    // Create new user
-    const user = new User({ username, password });
+    // Generate email from username if not provided
+    const email = providedEmail || `${username}@example.com`;
+    console.log(`Creating user with email: ${email}`);
+
+    // Create new user with email
+    const user = new User({ username, password, email });
     await user.save();
 
     res.status(201).json({ message: "User registered successfully" });
