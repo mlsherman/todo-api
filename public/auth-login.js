@@ -1,145 +1,160 @@
-document.addEventListener('DOMContentLoaded', function() {
-    // DOM elements
-    const loginForm = document.getElementById('login-form');
-    const registerForm = document.getElementById('register-form');
-    const showRegisterLink = document.getElementById('show-register');
-    const showLoginLink = document.getElementById('show-login');
-    
-    const loginAlert = document.getElementById('login-alert');
-    const loginSuccess = document.getElementById('login-success');
-    const registerAlert = document.getElementById('register-alert');
-    const registerSuccess = document.getElementById('register-success');
-  
-    // Check if user is already logged in
-    const token = localStorage.getItem('token');
-    if (token) {
-      // Redirect to todo app if already logged in
-      window.location.href = 'index.html';
-    }
-  
-    // Show register form
-    showRegisterLink.addEventListener('click', function(e) {
-      loginForm.style.display = 'none';
-      registerForm.style.display = 'block';
-      
-      // Clear any error/success messages
-      loginAlert.style.display = 'none';
-      loginSuccess.style.display = 'none';
-    });
-  
-    // Show login form
-    showLoginLink.addEventListener('click', function(e) {
-      registerForm.style.display = 'none';
-      loginForm.style.display = 'block';
-      
-      // Clear any error/success messages
-      registerAlert.style.display = 'none';
-      registerSuccess.style.display = 'none';
-    });
-  
-    // Login form submission
-    document.getElementById('login').addEventListener('submit', async function(e) {
+document.addEventListener("DOMContentLoaded", function () {
+  // DOM elements
+  const loginForm = document.getElementById("login-form");
+  const registerForm = document.getElementById("register-form");
+  const showRegisterLink = document.getElementById("show-register");
+  const showLoginLink = document.getElementById("show-login");
+
+  const loginAlert = document.getElementById("login-alert");
+  const loginSuccess = document.getElementById("login-success");
+  const registerAlert = document.getElementById("register-alert");
+  const registerSuccess = document.getElementById("register-success");
+
+  // Check if user is already logged in
+  const token = localStorage.getItem("token");
+  if (token) {
+    // Redirect to todo app if already logged in
+    window.location.href = "index.html";
+  }
+
+  // Show register form
+  showRegisterLink.addEventListener("click", function (e) {
+    loginForm.style.display = "none";
+    registerForm.style.display = "block";
+
+    // Clear any error/success messages
+    loginAlert.style.display = "none";
+    loginSuccess.style.display = "none";
+  });
+
+  // Show login form
+  showLoginLink.addEventListener("click", function (e) {
+    registerForm.style.display = "none";
+    loginForm.style.display = "block";
+
+    // Clear any error/success messages
+    registerAlert.style.display = "none";
+    registerSuccess.style.display = "none";
+  });
+
+  // Login form submission
+  document
+    .getElementById("login")
+    .addEventListener("submit", async function (e) {
       e.preventDefault();
-      
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
       // Hide previous messages
-      loginAlert.style.display = 'none';
-      loginSuccess.style.display = 'none';
-      
+      loginAlert.style.display = "none";
+      loginSuccess.style.display = "none";
+
       try {
-        const response = await fetch('/auth/login', {
-          method: 'POST',
+        const response = await fetch("/auth/login", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, password }),
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           // Show error message
-          loginAlert.textContent = data.error || 'Login failed. Please try again.';
-          loginAlert.style.display = 'block';
+          loginAlert.textContent =
+            data.error || "Login failed. Please try again.";
+          loginAlert.style.display = "block";
           return;
         }
-        
+
         // Store token in localStorage
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('userId', data.userId);
-        
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userId", data.userId);
+
         // Show success message
-        loginSuccess.textContent = 'Login successful! Redirecting...';
-        loginSuccess.style.display = 'block';
-        
+        loginSuccess.textContent = "Login successful! Redirecting...";
+        loginSuccess.style.display = "block";
+
         // Redirect to todo app
         setTimeout(() => {
-          window.location.href = 'index.html';
+          window.location.href = "index.html";
         }, 1000);
-        
       } catch (error) {
-        loginAlert.textContent = 'An error occurred. Please try again.';
-        loginAlert.style.display = 'block';
-        console.error('Login error:', error);
+        loginAlert.textContent = "An error occurred. Please try again.";
+        loginAlert.style.display = "block";
+        console.error("Login error:", error);
       }
     });
-  
-    // Register form submission
-    document.getElementById('register').addEventListener('submit', async function(e) {
+
+  // Register form submission
+  // Update the register form submission handler
+  document
+    .getElementById("register")
+    .addEventListener("submit", async function (e) {
       e.preventDefault();
-      
-      const username = document.getElementById('register-username').value;
-      const password = document.getElementById('register-password').value;
-      const confirmPassword = document.getElementById('confirm-password').value;
-      
+
+      const username = document.getElementById("register-username").value;
+      const email = document.getElementById("register-email").value; // Get email from form
+      const password = document.getElementById("register-password").value;
+      const confirmPassword = document.getElementById("confirm-password").value;
+
       // Hide previous messages
-      registerAlert.style.display = 'none';
-      registerSuccess.style.display = 'none';
-      
+      registerAlert.style.display = "none";
+      registerSuccess.style.display = "none";
+
       // Validate passwords match
       if (password !== confirmPassword) {
-        registerAlert.textContent = 'Passwords do not match.';
-        registerAlert.style.display = 'block';
+        registerAlert.textContent = "Passwords do not match.";
+        registerAlert.style.display = "block";
         return;
       }
-      
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        registerAlert.textContent = "Please enter a valid email address.";
+        registerAlert.style.display = "block";
+        return;
+      }
+
       try {
-        const response = await fetch('/auth/register', {
-          method: 'POST',
+        const response = await fetch("/auth/register", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-          body: JSON.stringify({ username, password })
+          body: JSON.stringify({ username, email, password }), // Include email in the request
         });
-        
+
         const data = await response.json();
-        
+
         if (!response.ok) {
           // Show error message
-          registerAlert.textContent = data.error || 'Registration failed. Please try again.';
-          registerAlert.style.display = 'block';
+          registerAlert.textContent =
+            data.error || "Registration failed. Please try again.";
+          registerAlert.style.display = "block";
           return;
         }
-        
+
         // Show success message
-        registerSuccess.textContent = 'Registration successful! You can now login.';
-        registerSuccess.style.display = 'block';
-        
+        registerSuccess.textContent =
+          "Registration successful! You can now login.";
+        registerSuccess.style.display = "block";
+
         // Clear form
-        document.getElementById('register').reset();
-        
+        document.getElementById("register").reset();
+
         // Switch to login form after 2 seconds
         setTimeout(() => {
-          registerForm.style.display = 'none';
-          loginForm.style.display = 'block';
+          registerForm.style.display = "none";
+          loginForm.style.display = "block";
         }, 2000);
-        
       } catch (error) {
-        registerAlert.textContent = 'An error occurred. Please try again.';
-        registerAlert.style.display = 'block';
-        console.error('Registration error:', error);
+        registerAlert.textContent = "An error occurred. Please try again.";
+        registerAlert.style.display = "block";
+        console.error("Registration error:", error);
       }
     });
-  });
+});
