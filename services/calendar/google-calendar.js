@@ -6,7 +6,7 @@ const GOOGLE_CALENDAR_CONFIG = {
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   redirectUri:
     process.env.GOOGLE_REDIRECT_URI ||
-    "http://localhost:3000/auth/google/callback",
+    "https://todo-api-5w32.onrender.com/calendar/auth/google/callback",
 };
 
 /**
@@ -28,8 +28,10 @@ function createOAuth2Client() {
 
 /**
  * Generate a URL that asks for permission to access the user's calendar
+ * @param {string} userId - User ID to include as state parameter
+ * @returns {string} The authorization URL
  */
-function getAuthUrl() {
+function getAuthUrl(userId) {
   const oauth2Client = createOAuth2Client();
 
   const scopes = [
@@ -37,10 +39,12 @@ function getAuthUrl() {
     "https://www.googleapis.com/auth/calendar.events",
   ];
 
+  // Include userId as state parameter for security and identification during callback
   return oauth2Client.generateAuthUrl({
     access_type: "offline", // Will return a refresh token
     scope: scopes,
     prompt: "consent", // Forces to approve the consent again
+    state: userId, // Pass userId as state parameter
   });
 }
 
@@ -100,7 +104,7 @@ async function createEventFromTask(tokens, task) {
 
   const event = {
     summary: task.task, // Use task name as event summary
-    description: `Todo task from your Todo App. ${task.description || ""}`,
+    description: `Todo task from your Todo App.`,
     start: {
       dateTime: startTime,
       timeZone: "America/New_York", // Default timezone - should be customizable
@@ -134,16 +138,8 @@ async function createEventFromTask(tokens, task) {
 
 /**
  * Sync tasks with calendar events
- * This function can be called periodically to keep calendars in sync
  */
 async function syncTasksWithCalendar(tokens, tasks) {
-  // Implementation would depend on your data structure and requirements
-  // The basic idea is to:
-  // 1. Get existing events from Google Calendar
-  // 2. Compare with your tasks
-  // 3. Create, update or delete events as needed
-
-  // This is a simplified example
   const results = {
     created: [],
     updated: [],

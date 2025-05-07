@@ -6,10 +6,20 @@ const authMiddleware = auth.middleware; // Get your auth middleware
 // Import the google calendar service
 const googleCalendar = require("../services/calendar/google-calendar");
 
+// Add this near the top of your routes/calendar.js file
+router.get('/test-auth', (req, res) => {
+    res.json({
+      message: 'Calendar test route works!',
+      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?test=1'
+    });
+});
+
 // Route to initiate Google OAuth flow
 router.get("/auth/google", authMiddleware, (req, res) => {
   try {
-    const authUrl = googleCalendar.getAuthUrl();
+    console.log('Calendar auth/google route accessed, userId:', req.userId);
+    const authUrl = googleCalendar.getAuthUrl(req.userId);
+    console.log('Generated auth URL with state parameter:', authUrl);
     res.json({ authUrl });
   } catch (error) {
     console.error("Error generating auth URL:", error);
@@ -17,41 +27,76 @@ router.get("/auth/google", authMiddleware, (req, res) => {
   }
 });
 
-// Add this near the top of your routes/calendar.js file
-router.get('/test-auth', (req, res) => {
-    res.json({
-      message: 'Calendar test route works!',
-      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?test=1'
-    });
-  });
-
-// OAuth callback route
-router.get("/auth/google/callback", authMiddleware, async (req, res) => {
+// OAuth callback route - REMOVED authMiddleware to allow Google redirects
+router.get("/auth/google/callback", async (req, res) => {
   try {
-    const { code } = req.query;
+    const { code, state } = req.query;
+    console.log('Callback received - code exists:', !!code, 'state:', state);
 
     if (!code) {
       return res.status(400).json({ error: "Authorization code is required" });
     }
 
+    // Use state parameter (which contains userId) instead of req.userId
+    if (!state) {
+      console.error('No state parameter (userId) found in callback');
+      return res.status(401).json({ error: "User identification missing" });
+    }
+
+    const userId = state; // The state parameter contains the user ID
+    console.log('Using userId from state parameter:', userId);
+
     // Exchange code for tokens
     const tokens = await googleCalendar.getTokens(code);
+    console.log('Received tokens from Google');
 
     // Import mongoose here since we need the model
     const mongoose = require("mongoose");
     // Get User model - this will only work after the model has been registered
     const User = mongoose.model("User");
 
-    await User.findByIdAndUpdate(req.userId, {
+    // Update user with tokens using the userId from state parameter
+    await User.findByIdAndUpdate(userId, {
       "googleCalendar.tokens": tokens,
       "googleCalendar.connected": true,
+      "googleCalendar.lastSync": new Date()
     });
+    console.log('Updated user with Google Calendar tokens');
 
-    // Redirect to a success page or send success response
+    // Redirect to a success page
     res.redirect("/calendar-connected.html");
   } catch (error) {
     console.error("Error during Google callback:", error);
-    res.status(500).json({ error: "Failed to connect Google Calendar" });
+    res.status(500).json({ error: "Failed to connect Google Calendar", details: error.message });
+  }
+});
+
+// Route to check if user has connected Google Calendar
+router.get('/status', authMiddleware, async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const User = mongoose.model('User');
+    
+    const user = await User.findById(req.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    // Check if user has connected Google Calendar
+    const isConnected = user.googleCalendar && 
+                        user.googleCalendar.connected && 
+                        user.googleCalendar.tokens && 
+                        user.googleCalendar.tokens.access_token;
+    
+    res.json({ 
+      connected: !!isConnected,
+      // Only send additional info if connected
+      lastSync: isConnected ? user.googleCalendar.lastSync : null
+    });
+  } catch (error) {
+    console.error('Error checking calendar status:', error);
+    res.status(500).json({ error: 'Failed to check calendar status' });
   }
 });
 
@@ -79,37 +124,6 @@ router.get("/events", authMiddleware, async (req, res) => {
     res.status(500).json({ error: "Failed to fetch calendar events" });
   }
 });
-
-// Add this route to your existing routes/calendar.js file
-
-// Route to check if user has connected Google Calendar
-router.get('/status', authMiddleware, async (req, res) => {
-    try {
-      const mongoose = require('mongoose');
-      const User = mongoose.model('User');
-      
-      const user = await User.findById(req.userId);
-      
-      if (!user) {
-        return res.status(404).json({ error: 'User not found' });
-      }
-      
-      // Check if user has connected Google Calendar
-      const isConnected = user.googleCalendar && 
-                          user.googleCalendar.connected && 
-                          user.googleCalendar.tokens && 
-                          user.googleCalendar.tokens.access_token;
-      
-      res.json({ 
-        connected: !!isConnected,
-        // Only send additional info if connected
-        lastSync: isConnected ? user.googleCalendar.lastSync : null
-      });
-    } catch (error) {
-      console.error('Error checking calendar status:', error);
-      res.status(500).json({ error: 'Failed to check calendar status' });
-    }
-  });
 
 // Create calendar event from a task
 router.post("/events/task/:id", authMiddleware, async (req, res) => {
@@ -183,29 +197,3 @@ router.post("/sync", authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
-
-// const express = require("express");
-// const router = express.Router();
-
-// // Very simple test route with no dependencies
-// router.get("/test", (req, res) => {
-//   console.log("Calendar test route accessed");
-//   res.json({ message: "Calendar test route is working!" });
-// });
-
-// // Simple route for Google auth (fixed)
-// router.get("/auth/google", (req, res) => {
-//   console.log("Calendar auth/google route accessed");
-//   res.json({ message: "Google auth route is working!" });
-// });
-
-// // Simple callback route (fixed)
-// router.get("/auth/google/callback", (req, res) => {
-//   console.log("Google auth callback route accessed");
-//   res.json({ message: "Google auth callback is working!" });
-// });
-
-// // Log when this file is loaded
-// console.log("Calendar routes file loaded");
-
-// module.exports = router;
