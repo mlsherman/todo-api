@@ -6,14 +6,21 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const app = express();
 const PORT = process.env.PORT || 3000;
-const calendarRoutes = require('./routes/calendar')
 
 // ✅ MongoDB connection string
 const dbURI =
   "mongodb+srv://mshermandev01:J0Avk6LkMG9siRTL@cluster0.yu6ogsh.mongodb.net/todoDB?retryWrites=true&w=majority";
 
 mongoose
-  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(dbURI, {
+    // .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+    // .then(() => console.log("✅ MongoDB connected"))
+    // .catch((err) => console.error("❌ MongoDB connection error:", err));
+    ssl: true,
+    tls: true,
+    tlsAllowInvalidCertificates: true, // Only for testing!
+    serverSelectionTimeoutMS: 5000, // Wait 5 seconds before timing out
+  })
   .then(() => console.log("✅ MongoDB connected"))
   .catch((err) => console.error("❌ MongoDB connection error:", err));
 
@@ -70,13 +77,13 @@ todoSchema.pre("save", async function (next) {
 });
 
 const Todo = mongoose.model("Todo", todoSchema);
-
+const calendarRoutes = require("./routes/calendar");
 // ✅ Middleware
 app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(__dirname, "public")));
-app.use('/calendar', calendarRoutes);
-
+app.use("/calendar", calendarRoutes);
+console.log("Calendar routes registered at path /calendar");
 // Auth routes
 app.use("/auth", auth.routes);
 
@@ -411,11 +418,30 @@ app.delete("/appian/todos/:id", (req, res) => {
 });
 
 // Start server
+// Add this simple test route after your other routes
+// Put this right before your app.listen section
+app.get("/test-server", (req, res) => {
+  console.log("Server test route accessed");
+  res.json({ message: "Server is working!" });
+});
+
+// Add this catch-all route at the very end of your routes
+// Put this right before your app.listen section
+app.use((req, res) => {
+  console.log(`Catch-all route hit for: ${req.method} ${req.originalUrl}`);
+  res.status(404).json({ message: `Route not found: ${req.originalUrl}` });
+});
+
+// Update your app.listen with more detailed logging
 app.listen(PORT, () => {
   console.log(`🚀 Server is running on port ${PORT}`);
   console.log(`📝 API routes available at http://localhost:${PORT}/todos`);
   console.log(`🔐 Authentication routes: /auth/register and /auth/login`);
   console.log(
     `📦 Appian endpoints available at http://localhost:${PORT}/appian/todos`
+  );
+  console.log(`📂 Server running from directory: ${__dirname}`);
+  console.log(
+    `🔄 Test route available at: http://localhost:${PORT}/test-server`
   );
 });

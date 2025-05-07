@@ -144,3 +144,29 @@ router.post("/sync", authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+
+// const express = require("express");
+// const router = express.Router();
+
+// // Very simple test route with no dependencies
+// router.get("/test", (req, res) => {
+//   console.log("Calendar test route accessed");
+//   res.json({ message: "Calendar test route is working!" });
+// });
+
+// // Simple route for Google auth (fixed)
+// router.get("/auth/google", (req, res) => {
+//   console.log("Calendar auth/google route accessed");
+//   res.json({ message: "Google auth route is working!" });
+// });
+
+// // Simple callback route (fixed)
+// router.get("/auth/google/callback", (req, res) => {
+//   console.log("Google auth callback route accessed");
+//   res.json({ message: "Google auth callback is working!" });
+// });
+
+// // Log when this file is loaded
+// console.log("Calendar routes file loaded");
+
+// module.exports = router;
