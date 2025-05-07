@@ -17,6 +17,14 @@ router.get("/auth/google", authMiddleware, (req, res) => {
   }
 });
 
+// Add this near the top of your routes/calendar.js file
+router.get('/test-auth', (req, res) => {
+    res.json({
+      message: 'Calendar test route works!',
+      authUrl: 'https://accounts.google.com/o/oauth2/v2/auth?test=1'
+    });
+  });
+
 // OAuth callback route
 router.get("/auth/google/callback", authMiddleware, async (req, res) => {
   try {
