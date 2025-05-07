@@ -72,6 +72,37 @@ router.get("/events", authMiddleware, async (req, res) => {
   }
 });
 
+// Add this route to your existing routes/calendar.js file
+
+// Route to check if user has connected Google Calendar
+router.get('/status', authMiddleware, async (req, res) => {
+    try {
+      const mongoose = require('mongoose');
+      const User = mongoose.model('User');
+      
+      const user = await User.findById(req.userId);
+      
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+      
+      // Check if user has connected Google Calendar
+      const isConnected = user.googleCalendar && 
+                          user.googleCalendar.connected && 
+                          user.googleCalendar.tokens && 
+                          user.googleCalendar.tokens.access_token;
+      
+      res.json({ 
+        connected: !!isConnected,
+        // Only send additional info if connected
+        lastSync: isConnected ? user.googleCalendar.lastSync : null
+      });
+    } catch (error) {
+      console.error('Error checking calendar status:', error);
+      res.status(500).json({ error: 'Failed to check calendar status' });
+    }
+  });
+
 // Create calendar event from a task
 router.post("/events/task/:id", authMiddleware, async (req, res) => {
   try {
