@@ -71,6 +71,7 @@ Pull requests, ideas, or issues welcome. Let's improve it together!
 
 📄 License
 This project is licensed under the MIT License.
+![TODO API thumbnail](./assets/todo-thumbnail.png)
 
 
 
